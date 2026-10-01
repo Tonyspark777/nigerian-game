@@ -1,0 +1,1258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Storykeeper: a journey through Nigerian history</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --indigo:#1C2657; --bronze:#B07A26; --bronze-soft:#E9C98A; --flag:#008751;
+  --panel:#F3F1EA; --panel-2:#E5E2D6; --ink:#1A1F3A; --muted:#575C76; --line:rgba(28,38,87,.2);
+  --good:#1D7448; --good-bg:#DCEFE3; --bad:#9E3A2A; --bad-bg:#F5E1DC; --scrim:rgba(20,16,10,.5);
+  --serif:"Young Serif", Georgia, "Times New Roman", serif;
+  --sans:"Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --panel:#171C38; --panel-2:#242B52; --ink:#ECEDF5; --muted:#AEB3CC; --line:rgba(236,237,245,.18);
+    --good:#7FD3A2; --good-bg:#16382A; --bad:#F0A493; --bad-bg:#3E1E19; --scrim:rgba(4,6,18,.66);
+  }
+}
+:root[data-theme="dark"]{
+  --panel:#171C38; --panel-2:#242B52; --ink:#ECEDF5; --muted:#AEB3CC; --line:rgba(236,237,245,.18);
+  --good:#7FD3A2; --good-bg:#16382A; --bad:#F0A493; --bad-bg:#3E1E19; --scrim:rgba(4,6,18,.66);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0}
+body{background:#E7C79C;color:var(--ink);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none}
+#view{position:fixed;inset:0;touch-action:none}
+#view canvas{display:block;width:100%;height:100%}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--bronze);outline-offset:2px}
+kbd{font:600 .78rem/1 var(--sans);background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:.18rem .4rem;color:var(--ink)}
+.panel{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 3px 0 rgba(28,38,87,.85)}
+
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none}
+#hud > *{pointer-events:auto}
+#who{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;width:min(260px,calc(100vw - 210px));padding:.6rem .8rem .7rem}
+#who .name{font:400 1.15rem/1.15 var(--serif);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#who .lvl{font-size:.82rem;color:var(--muted);margin:.15rem 0 .4rem}
+.xpbar{height:8px;background:var(--panel-2);border-radius:999px;overflow:hidden}
+.xpbar i{display:block;height:100%;width:0;background:var(--bronze);transition:width .5s}
+#quests{position:absolute;top:calc(env(safe-area-inset-top,0px) + 112px);left:12px;width:min(260px,calc(100vw - 210px));padding:.6rem .8rem .7rem}
+#quests h2{font:400 .98rem/1.2 var(--serif);margin:0 0 .4rem}
+#quests ol{list-style:none;margin:0;padding:0;display:grid;gap:.28rem;font-size:.84rem}
+#quests li{display:flex;align-items:center;gap:.45rem}
+#quests li i{width:10px;height:10px;border-radius:50%;flex:none}
+#quests li span:last-child{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted)}
+#quests li.done{color:var(--muted);text-decoration:line-through}
+#side{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;display:grid;gap:.5rem;justify-items:end}
+#mm{width:168px;height:168px;border-radius:50%;border:3px solid var(--panel);box-shadow:0 3px 0 rgba(28,38,87,.85);background:var(--indigo);display:block}
+.btns{display:flex;gap:.4rem}
+.btns button{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.45rem .8rem;font-weight:600;font-size:.88rem;box-shadow:0 2px 0 rgba(28,38,87,.85)}
+.btns button:active{transform:translateY(2px);box-shadow:none}
+#prompt{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 26px);transform:translateX(-50%);padding:.6rem 1rem;font-weight:600;white-space:nowrap}
+#prompt[hidden]{display:none}
+#toasts{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);left:50%;transform:translateX(-50%);display:grid;gap:.4rem;justify-items:center;pointer-events:none;width:min(420px,calc(100vw - 380px))}
+.toast{background:var(--indigo);color:#F6EEDC;border-radius:6px;padding:.5rem .9rem;font-size:.92rem;font-weight:500;text-align:center;box-shadow:0 3px 0 var(--bronze);animation:t 3.6s forwards}
+.toast b{color:var(--bronze-soft);font-weight:600}
+@keyframes t{0%{opacity:0;transform:translateY(-6px)}8%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){.toast{animation:t2 3.6s forwards}@keyframes t2{0%,85%{opacity:1}100%{opacity:0}}.xpbar i{transition:none}}
+#help{position:absolute;left:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);padding:.5rem .75rem;font-size:.8rem;color:var(--muted);line-height:1.7;max-width:330px}
+#help kbd{margin-right:.15rem}
+
+/* touch controls */
+#stick{position:absolute;left:22px;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);width:124px;height:124px;border-radius:50%;background:rgba(243,241,234,.35);border:2px solid rgba(243,241,234,.7);touch-action:none;display:none}
+#knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:var(--panel);box-shadow:0 3px 0 rgba(28,38,87,.85)}
+#talkBtn{position:absolute;right:22px;bottom:calc(env(safe-area-inset-bottom,0px) + 34px);width:86px;height:86px;border-radius:50%;border:0;background:var(--indigo);color:#F6EEDC;font-weight:600;box-shadow:0 4px 0 var(--bronze);display:none}
+#talkBtn:disabled{opacity:.4}
+body.touch #stick,body.touch #talkBtn{display:block}
+body.touch #help{display:none}
+body.touch #prompt{bottom:calc(env(safe-area-inset-bottom,0px) + 150px)}
+@media (max-width:640px){
+  #mm{width:112px;height:112px}
+  #who,#quests{width:calc(100vw - 150px)}
+  #quests{display:none}
+  #toasts{width:calc(100vw - 24px);top:calc(env(safe-area-inset-top,0px) + 150px)}
+}
+
+/* sheets */
+.overlay{position:fixed;inset:0;background:var(--scrim);display:grid;place-items:center;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);z-index:20}
+.overlay[hidden]{display:none}
+.sheet{background:var(--panel);color:var(--ink);border-radius:6px;width:min(600px,100%);max-height:100%;overflow:auto}
+.band{height:22px;background-color:var(--indigo);border-radius:6px 6px 0 0;
+  background-image:radial-gradient(circle at 11px 11px, transparent 5px, rgba(220,228,255,.42) 5.5px, rgba(220,228,255,.42) 7px, transparent 7.5px),radial-gradient(circle at 0 0, rgba(220,228,255,.42) 2.5px, transparent 3px);
+  background-size:22px 22px}
+.sheet-body{padding:1.4rem 1.6rem 1.6rem}
+@media (max-width:480px){.sheet-body{padding:1.1rem 1.1rem 1.3rem}}
+.sheet h2.big{font:400 clamp(2.2rem,7vw,3.2rem)/1 var(--serif);margin:.1rem 0 .9rem}
+.sheet p{line-height:1.6;margin:0 0 .9rem;max-width:62ch}
+.holiday{background:var(--panel-2);border-left:4px solid var(--flag);padding:.6rem .8rem;border-radius:0 4px 4px 0}
+label.field{display:grid;gap:.35rem;font-weight:600;font-size:.92rem;margin:.4rem 0 1rem}
+label.field input{font:inherit;font-weight:400;padding:.65rem .8rem;border:1.5px solid var(--line);border-radius:4px;background:var(--panel-2);color:var(--ink);max-width:320px}
+.primary{background:var(--indigo);color:#F6EEDC;border:0;border-radius:999px;padding:.8rem 1.4rem;font-weight:600;font-size:1rem;box-shadow:0 3px 0 var(--bronze)}
+.primary:active{transform:translateY(2px);box-shadow:0 1px 0 var(--bronze)}
+.ghost{background:transparent;border:1.5px solid var(--line);border-radius:999px;padding:.75rem 1.2rem;font-weight:600}
+.row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-top:1.1rem}
+.x{background:var(--panel-2);border:0;width:38px;height:38px;border-radius:50%;font-size:1.3rem;line-height:1;flex:none}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}
+.head h2{font:400 1.8rem/1.1 var(--serif);margin:0}
+.sub{color:var(--muted);margin:.3rem 0 1rem}
+
+/* dialogue */
+#dlg{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);width:min(680px,calc(100vw - 24px));z-index:15;max-height:calc(100% - 32px);overflow:auto;box-shadow:0 4px 0 rgba(28,38,87,.85)}
+#dlg[hidden]{display:none}
+#dlg .sheet-body{padding:1.1rem 1.3rem 1.2rem}
+.speaker{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;margin-bottom:.5rem}
+.speaker h2{font:400 1.35rem/1.1 var(--serif);margin:0}
+.speaker span{color:var(--muted);font-size:.88rem}
+#dlgText{font-size:1.04rem;line-height:1.62;margin:0 0 .3rem;max-width:66ch}
+#dlgText .meta{display:block;color:var(--muted);font-size:.9rem;margin-top:.35rem}
+#dlgOpts{display:grid;gap:.45rem;margin-top:.7rem}
+#dlgOpts:empty{display:none}
+#dlgOpts button{text-align:left;background:transparent;border:1.5px solid var(--line);border-radius:4px;padding:.65rem .85rem;font-size:.98rem;line-height:1.35}
+#dlgOpts button:not(:disabled):hover{border-color:var(--bronze)}
+#dlgOpts button.right{background:var(--good-bg);border-color:var(--good)}
+#dlgOpts button.wrong{background:var(--bad-bg);border-color:var(--bad)}
+.reward{display:flex;gap:.7rem;align-items:center;background:var(--panel-2);border-radius:4px;padding:.6rem .8rem;margin-top:.7rem}
+.reward i{width:14px;height:14px;transform:rotate(45deg);flex:none}
+.dlg-foot{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.8rem}
+.dlg-foot .hint{margin-right:auto;color:var(--muted);font-size:.82rem;align-self:center}
+body.touch .dlg-foot .hint{display:none}
+
+/* journal and map */
+.era-block{border-top:1px solid var(--line);padding:1rem 0 .3rem}
+.era-block h3{display:flex;align-items:center;gap:.5rem;font:400 1.15rem/1.2 var(--serif);margin:0 0 .1rem}
+.era-block h3 i{width:12px;height:12px;border-radius:50%}
+.era-block .span{color:var(--muted);font-size:.85rem;margin:0 0 .55rem}
+.era-block ol{list-style:none;margin:0;padding:0;display:grid;gap:.35rem}
+.era-block li{background:var(--panel-2);border-radius:4px;padding:.55rem .75rem;display:grid;gap:.1rem}
+.era-block li .d{font-size:.8rem;color:var(--muted)}
+.era-block li .t{font-weight:600}
+.era-block li .r{font-size:.85rem}
+.era-block li.locked{background:transparent;border:1.5px dashed var(--line);color:var(--muted);font-style:italic}
+#bigmap{width:100%;height:auto;display:block;border-radius:4px;background:var(--indigo)}
+#travel{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.8rem}
+#travel button{background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:.45rem .8rem;font-size:.88rem;font-weight:500}
+#travel p{margin:0;color:var(--muted);font-size:.9rem}
+.wide{width:min(760px,100%)}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:#E7C79C;font:400 1.4rem var(--serif);color:#1C2657;z-index:30}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div id="loading">Raising the land…</div>
+<div id="view" aria-label="3D world of Nigeria" tabindex="0"></div>
+
+<div id="hud">
+  <section id="who" class="panel" aria-label="Your character">
+    <p class="name" id="pName">Traveller</p>
+    <p class="lvl" id="pLvl">Level 1 Wanderer. 0 XP</p>
+    <div class="xpbar" role="progressbar" aria-label="Experience to next level" aria-valuemin="0" aria-valuemax="100" id="xpWrap"><i id="xpFill"></i></div>
+  </section>
+  <section id="quests" class="panel" aria-label="Quests">
+    <h2>Gather the twenty stories</h2>
+    <ol id="qList"></ol>
+  </section>
+  <div id="side">
+    <canvas id="mm" width="168" height="168" aria-label="Minimap"></canvas>
+    <div class="btns">
+      <button id="askBtn" type="button">Ask the way</button>
+      <button id="mapBtn" type="button">Map</button>
+      <button id="jBtn" type="button">Journal</button>
+    </div>
+  </div>
+  <div id="toasts" aria-live="polite"></div>
+  <p id="prompt" class="panel" hidden></p>
+  <p id="help" class="panel"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk, <kbd>Shift</kbd> run, drag or <kbd>←</kbd><kbd>→</kbd> to turn the camera, <kbd>E</kbd> talk, <kbd>C</kbd> ask the way, <kbd>M</kbd> map, <kbd>J</kbd> journal</p>
+  <div id="stick" aria-hidden="true"><div id="knob"></div></div>
+  <button id="talkBtn" type="button" disabled>Talk</button>
+</div>
+
+<section id="dlg" class="sheet" hidden role="dialog" aria-labelledby="dlgName">
+  <div class="band"></div>
+  <div class="sheet-body">
+    <div class="speaker"><h2 id="dlgName"></h2><span id="dlgRole"></span></div>
+    <p id="dlgText"></p>
+    <div id="dlgOpts"></div>
+    <div id="dlgReward"></div>
+    <div class="dlg-foot"><span class="hint"><kbd>Space</kbd> to continue</span><button id="dlgNext" class="primary" type="button">Continue</button></div>
+  </div>
+</section>
+
+<div id="intro" class="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+    <div class="band"></div>
+    <div class="sheet-body">
+      <h2 class="big" id="introTitle">Storykeeper</h2>
+      <p id="holiday" class="holiday" hidden></p>
+      <p>Your grandmother has kept the family's stories for sixty years. Now she wants you to carry them on, but first you must hear them for yourself.</p>
+      <p>Travel across Nigeria, from the Sahel to the creeks of the Delta. Find the twenty storytellers waiting at places where history happened, listen to what they tell you and answer their question. Each one gives you a relic and experience. Complete every era to become a Storykeeper.</p>
+      <label class="field">What should the storytellers call you?
+        <input id="nameIn" maxlength="24" placeholder="Traveller" autocomplete="off">
+      </label>
+      <div class="row"><button class="primary" id="startBtn" type="button">Begin the journey</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="journal" class="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="jTitle">
+    <div class="band"></div>
+    <div class="sheet-body">
+      <div class="head"><h2 id="jTitle">Journal</h2><button class="x" id="jClose" type="button" aria-label="Close journal">×</button></div>
+      <p class="sub" id="jSub"></p>
+      <div id="jList"></div>
+      <div class="row"><button class="ghost" id="resetBtn" type="button">Start a new journey</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="mapPanel" class="overlay" hidden>
+  <div class="sheet wide" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <div class="band"></div>
+    <div class="sheet-body">
+      <div class="head"><h2 id="mTitle">Map of your travels</h2><button class="x" id="mClose" type="button" aria-label="Close map">×</button></div>
+      <p class="sub" id="mSub"></p>
+      <canvas id="bigmap" width="884" height="724" aria-label="Map of Nigeria showing explored areas and storytellers"></canvas>
+      <div id="travel"></div>
+    </div>
+  </div>
+</div>
+
+<div id="finale" class="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="finTitle">
+    <div class="band"></div>
+    <div class="sheet-body">
+      <h2 class="big" id="finTitle">Storykeeper</h2>
+      <p id="finText"></p>
+      <div class="row"><button class="primary" id="finKeep" type="button">Keep wandering</button><button class="ghost" id="finJ" type="button">Open journal</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const TOUCH = matchMedia('(pointer: coarse)').matches;
+if (TOUCH) document.body.classList.add('touch');
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ================= geography ================= */
+const K = 36, LONC = 8.2, LATC = 9.0;
+const toW = (lon, lat) => [(lon - LONC) * K, (LATC - lat) * K];
+const toLL = (x, z) => [x / K + LONC, LATC - z / K];
+const X0 = (1.8 - LONC) * K, X1 = (15.6 - LONC) * K, Z0 = (LATC - 14.6) * K, Z1 = (LATC - 3.4) * K;
+const WW = X1 - X0, DD = Z1 - Z0;
+const NGLL = [[2.70,6.37],[2.72,7.00],[2.75,8.50],[3.10,9.10],[3.60,10.30],[3.60,11.00],[3.65,11.70],[3.65,12.50],[4.10,13.50],[4.90,13.75],[5.50,13.85],[6.40,13.60],[6.80,13.10],[8.00,13.30],[9.00,12.85],[10.00,13.25],[11.00,13.40],[12.30,13.30],[13.30,13.70],[14.10,13.10],[14.60,12.20],[14.20,11.20],[13.70,10.70],[13.30,10.00],[13.20,9.40],[12.80,8.70],[12.20,8.20],[11.80,7.10],[11.10,6.50],[10.60,7.00],[9.80,6.40],[9.20,5.60],[8.80,5.10],[8.50,4.60],[7.80,4.40],[7.00,4.40],[6.10,4.30],[5.50,4.90],[5.00,5.60],[4.50,6.20],[3.40,6.40]];
+const NGW = NGLL.map(p => toW(...p));
+const SEAW = [[1.8,6.2],[2.70,6.37],[3.40,6.40],[4.50,6.20],[5.00,5.60],[5.50,4.90],[6.10,4.30],[7.00,4.40],[7.80,4.40],[8.50,4.60],[9.0,4.05],[9.5,3.95],[9.75,3.4],[1.8,3.4]].map(p => toW(...p));
+const COAST = [[8.50,4.60],[7.80,4.40],[7.00,4.40],[6.10,4.30],[5.50,4.90],[5.00,5.60],[4.50,6.20],[3.40,6.40],[2.70,6.37]].map(p => toW(...p));
+const RIVERS = [
+  { hw:2.3, pts:[[3.55,11.75],[4.0,11.2],[4.5,10.4],[4.75,9.6],[4.85,9.13],[5.6,8.95],[6.2,8.6],[6.74,7.8],[6.75,7.0],[6.78,6.15],[6.6,5.5],[6.3,4.9],[6.15,4.2]] },
+  { hw:2.1, pts:[[13.6,9.35],[12.5,9.22],[11.6,9.0],[10.6,8.6],[9.8,8.2],[9.1,7.85],[8.53,7.73],[7.6,7.85],[6.74,7.8]] },
+  { hw:1.3, pts:[[6.6,5.5],[5.9,5.2],[5.4,4.95],[5.2,4.7]] },
+  { hw:1.3, pts:[[6.6,5.5],[7.0,4.9],[7.2,4.3]] },
+  { hw:1.1, pts:[[6.45,5.2],[5.8,4.75],[5.6,4.5]] }
+].map(r => ({ hw:r.hw, pts:r.pts.map(p => toW(...p)) }));
+const LAKE = (() => { const [x, z] = toW(14.25, 13.25); return { x, z, rx:.55 * K, rz:.42 * K }; })();
+const BUMPS = [[8.9,9.7,5.5,.8],[13.6,10.8,7,.35],[9.35,6.45,5,.35],[11.9,8.5,5,.5],[5.1,7.1,3,.3],[7.45,9.1,3.5,.18],[3.35,7.15,2.5,.12],[10.3,10.9,2,.6]].map(([lo, la, a, s]) => { const [x, z] = toW(lo, la); return { x, z, a, s:s * K }; });
+
+function inside(x, z, poly){
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++){
+    const [xi, zi] = poly[i], [xj, zj] = poly[j];
+    if (((zi > z) !== (zj > z)) && (x < (xj - xi) * (z - zi) / (zj - zi) + xi)) c = !c;
+  }
+  return c;
+}
+function segDist(px, pz, ax, az, bx, bz){
+  const dx = bx - ax, dz = bz - az, l = dx * dx + dz * dz;
+  let t = l ? ((px - ax) * dx + (pz - az) * dz) / l : 0; t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - ax - t * dx, pz - az - t * dz);
+}
+function lineDist(x, z, pts){ let d = Infinity; for (let i = 0; i < pts.length - 1; i++) d = Math.min(d, segDist(x, z, pts[i][0], pts[i][1], pts[i+1][0], pts[i+1][1])); return d; }
+function riverDist(x, z){ let d = Infinity; for (const r of RIVERS) d = Math.min(d, lineDist(x, z, r.pts) - r.hw); return d; }
+const inNG = (x, z) => inside(x, z, NGW);
+const noise = (x, z) => Math.sin(x * .045 + 1.3) * Math.cos(z * .052 - .7) * .55 + Math.sin(x * .11 + z * .09) * .28 + Math.sin(x * .23 - z * .19 + 2) * .14;
+const sstep = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+/* ================= history ================= */
+const ERAS = [
+  { id:'ancient',  name:'Ancient roots',              span:'Before AD 1000', until:1000,  color:'#A4532C' },
+  { id:'kingdoms', name:'Kingdoms and cities',        span:'1000 to 1800',   until:1800,  color:'#B07A26' },
+  { id:'colonial', name:'Upheaval and colonial rule', span:'1800 to 1959',   until:1960,  color:'#2E6F73' },
+  { id:'modern',   name:'Independent Nigeria',        span:'1960 to today',  until:99999, color:'#008751' }
+];
+const eraOf = y => ERAS.find(e => y < e.until);
+
+const SITES = [
+ { id:'nok', title:'the Nok terracottas', place:'Nok, southern Kaduna', date:'c. 900 BC to AD 200', year:-900, lon:8.05, lat:9.55,
+   npc:'Baba Danjuma', role:'retired tin miner', robe:'#6D5A3E', cap:'#C9B27A', relic:'Terracotta figure fragment',
+   story:'Tin miners on the Jos Plateau kept turning up clay heads in the 1920s, 30s and 40s. Archaeologist Bernard Fagg realised they belonged to a lost culture, named after the village of Nok. Its people farmed, built hilltop settlements and smelted iron, some of the earliest iron-working in West Africa.',
+   fact:'Nok figures often have triangular or D-shaped eyes with pierced pupils and elaborate hairstyles, a record of how people styled themselves more than 2,000 years ago.',
+   q:'What were the Nok sculptures mainly made from?', opts:['Bronze','Fired clay (terracotta)','Ivory'], a:1 },
+ { id:'kanem', title:'Kanem-Bornu', place:'Birni Ngazargamu, Yobe', date:'c. 9th century to 1893', year:850, lon:11.2, lat:12.98,
+   npc:'Mallam Kachalla', role:'keeper of the old capital', robe:'#E6DCC3', cap:'#7A2E2A', relic:'Saharan salt slab', npcOff:[9.5,0],
+   story:'For nearly a thousand years a single dynasty, the Sayfawa, ruled around Lake Chad, first from Kanem and then, from the late 1300s, from Bornu. Its rulers adopted Islam in the 11th century and traded horses, salt and cloth across the Sahara. Their brick-walled capital, Birni Ngazargamu, was built in the 1470s.',
+   fact:'Mai Idris Alooma, who reigned in the late 1500s, imported firearms and hired Turkish musketeers, one of the first West African rulers to do so.',
+   q:'Which lake did the Kanem-Bornu empire grow up around?', opts:['Lake Kainji','Lake Victoria','Lake Chad'], a:2 },
+ { id:'igboukwu', title:'the bronzes of Igbo-Ukwu', place:'Igbo-Ukwu, Anambra', date:'9th to 10th century AD', year:900, lon:7.02, lat:6.02,
+   npc:'Nne Adaeze', role:'farmer and storyteller', robe:'#2F5D8A', cap:'#E0B13A', relic:'Glass trade bead',
+   story:'In 1938 Isaiah Anozie was digging a water cistern in his compound when he struck bronze. Later excavations by Thurstan Shaw uncovered astonishingly intricate castings, the burial chamber of an important titled man, and more than 100,000 glass and stone beads.',
+   fact:'Some of the beads came from far away, evidence that this community was linked to long-distance trade routes across the Sahara.',
+   q:'How were the Igbo-Ukwu bronzes made?', opts:['Lost-wax casting','Hammered from metal sheets','Carved from stone and painted'], a:0 },
+ { id:'kano', title:'Kano\u2019s walls and dye pits', place:'Kano', date:'from c. 1100', year:1100, lon:8.52, lat:12.0,
+   npc:'Malama Hauwa', role:'dyer at Kofar Mata', robe:'#1C2657', cap:'#D9C9A0', relic:'Indigo-dyed cloth', npcOff:[0,10],
+   story:'Kano grew into one of the great Hausa city-states and a crossroads of Sahel trade. Its earthen walls were begun around the 12th century and extended over hundreds of years. The Kano Chronicle records a line of rulers stretching back nearly a thousand years.',
+   fact:'The Kofar Mata dye pits, dating to the late 15th century, are still used today to dye cloth deep blue.',
+   q:'What colour is cloth traditionally dyed at Kano\u2019s Kofar Mata pits?', opts:['Red','Indigo blue','Yellow'], a:1 },
+ { id:'ife', title:'the heads of Ile-Ife', place:'Ile-Ife, Osun', date:'12th to 15th century AD', year:1200, lon:4.56, lat:7.48,
+   npc:'Baba Adewale', role:'palace historian', robe:'#F0E6D0', cap:'#4C2C6E', relic:'Copper-alloy head miniature',
+   story:'In Yoruba tradition Ile-Ife is where the world began and where Oduduwa founded the first kingdom. Its artists cast life-size heads in copper alloy and modelled others in terracotta, so lifelike that some European scholars refused to believe Africans had made them.',
+   fact:'In 1910 the German explorer Leo Frobenius saw an Ife head and claimed it must come from the lost city of Atlantis. It came, of course, from Ife\u2019s own artists.',
+   q:'Which founding figure is linked to Ile-Ife in Yoruba tradition?', opts:['Idris Alooma','Usman dan Fodio','Oduduwa'], a:2 },
+ { id:'benin', title:'the Benin Kingdom', place:'Benin City, Edo', date:'c. 1440 to 1897', year:1440, lon:5.62, lat:6.34,
+   npc:'Chief Osaro', role:'member of the brass casters\u2019 guild', robe:'#C9483A', cap:'#E9E2CF', relic:'Brass plaque replica', npcOff:[7,7],
+   cols:[[-9,-4,2.2],[-4.5,-4,2.2],[0,-4,2.2],[4.5,-4,2.2],[9,-4,2.2],[4,2,2.2],[-3,2,1.6]],
+   story:'Under Oba Ewuare and his successors, Benin City became a planned city ringed by the Walls of Benin, a network of earthworks and moats among the largest ever built. Guilds of brass casters recorded court history on plaques that lined the palace.',
+   fact:'In 1897 a British punitive expedition burned the city and looted thousands of these works. Since 2021, museums in Germany, the United States and the UK have begun returning some of them.',
+   q:'What happened to the Benin Bronzes in 1897?', opts:['They were looted by a British expedition','They were buried for safekeeping','They were sold to Portuguese traders'], a:0 },
+ { id:'sukur', title:'the Sukur cultural landscape', place:'Sukur, Adamawa', date:'from the 16th century', year:1550, lon:13.45, lat:10.75,
+   npc:'Elder Yakubu', role:'iron smelter\u2019s grandson', robe:'#5B4B3A', cap:'#A33B2B', relic:'Iron hoe blade', cols:[[0,0,6]], npcOff:[8,6],
+   story:'High in the Mandara Mountains, the Sukur built terraced farms, stone-paved paths and a dry-stone palace for their ruler, the Hidi. Sukur was a major centre of iron smelting, supplying iron across the region.',
+   fact:'In 1999 Sukur became the first African cultural landscape added to UNESCO\u2019s World Heritage List.',
+   q:'Sukur was famous for producing which metal?', opts:['Gold','Tin','Iron'], a:2 },
+ { id:'oyo', title:'Old Oyo\u2019s cavalry empire', place:'Oyo-Ile, Old Oyo National Park', date:'c. 1600 to the 1830s', year:1600, lon:4.15, lat:8.95,
+   npc:'Baba Akinola', role:'park ranger', robe:'#3E6B3A', cap:'#3E6B3A', relic:'Cavalry bridle',
+   story:'From Oyo-Ile, the Alaafin ruled one of West Africa\u2019s most powerful states, and its cavalry dominated the savanna. Power was balanced by the Oyo Mesi, a council of nobles who could formally reject a ruler, a verdict that by custom ended his reign.',
+   fact:'Oyo-Ile was abandoned in the 1830s amid civil war. Its ruins now lie inside Old Oyo National Park.',
+   q:'What military force made Oyo so powerful?', opts:['Cavalry','A war fleet','Musketeers from Morocco'], a:0 },
+ { id:'osun', title:'the Osun-Osogbo grove', place:'Osogbo, Osun', date:'c. 17th century to today', year:1650, lon:4.55, lat:7.76,
+   npc:'Iya Morenike', role:'festival devotee', robe:'#E8E3D3', cap:'#E8E3D3', relic:'River-smoothed stone', cols:[[0,-3,4]],
+   story:'On the edge of Osogbo lies one of the last stands of primary high forest in southern Nigeria, sacred to Osun, the Yoruba orisha of the river and of fertility. Shrines, sculptures and the river itself make it a living place of worship.',
+   fact:'Austrian-born artist Susanne Wenger and the New Sacred Art movement restored the grove from the 1950s. It became a UNESCO World Heritage Site in 2005.',
+   q:'When is the Osun-Osogbo festival held each year?', opts:['January','August','October'], a:1 },
+ { id:'aro', title:'the Aro Confederacy', place:'Arochukwu, Abia', date:'c. 1690 to 1902', year:1690, lon:7.91, lat:5.39,
+   npc:'Ezinne Chioma', role:'Aro trader\u2019s descendant', robe:'#7A3E6E', cap:'#E0B13A', relic:'Aro trader\u2019s staff', cols:[[0,0,6]], npcOff:[8,6],
+   story:'The Aro built a trading network across Igboland and beyond, anchored by the Ibini Ukpabi oracle at Arochukwu. People travelled great distances to consult it, and Aro settlements dotted the trade routes.',
+   fact:'The British called the oracle the \u201cLong Juju\u201d and destroyed its shrine during the Anglo-Aro War of 1901 to 1902.',
+   q:'What was at the centre of Aro influence?', opts:['A gold mine','An oracle','A river fortress'], a:1 },
+ { id:'badagry', title:'Badagry and the Point of No Return', place:'Badagry, Lagos', date:'18th to 19th century', year:1750, lon:2.95, lat:6.48,
+   npc:'Mr Kunle', role:'heritage museum guide', robe:'#33507A', cap:'#33507A', relic:'Remembrance stone', npcOff:[-2,8], cols:[[-2.5,0,1.2],[2.5,0,1.2],[7,2,3]],
+   story:'Badagry was a port in the Atlantic slave trade. Captives were marched to a beach the town now calls the Point of No Return and shipped to the Americas. After abolition, Badagry became a gateway for missionaries, and Christianity arrived here in 1842.',
+   fact:'Nigeria\u2019s first storey building was put up in Badagry in 1845 by the Church Missionary Society. It still stands.',
+   q:'What was built in Badagry in 1845?', opts:['Nigeria\u2019s first railway station','Nigeria\u2019s first storey building','Nigeria\u2019s first university'], a:1 },
+ { id:'calabar', title:'Old Calabar and the palm-oil trade', place:'Calabar, Cross River', date:'18th to 19th century', year:1800, lon:8.33, lat:4.98,
+   npc:'Madam Eno', role:'Efik market trader', robe:'#D9832E', cap:'#2E6F73', relic:'Palm-oil ladle',
+   story:'Efik merchants of Old Calabar ran a powerful trading town on the Cross River. After the slave trade ended, they traded palm oil, which greased Britain\u2019s industrial machines. Ekpe, a society of masked men, enforced debts and law across the region.',
+   fact:'Calabar was headquarters of the Niger Coast Protectorate in the 1890s. Scottish missionary Mary Slessor lived in the region for nearly 40 years.',
+   q:'Which product replaced the slave trade as Calabar\u2019s main export?', opts:['Crude oil','Cocoa','Palm oil'], a:2 },
+ { id:'sokoto', title:'the Sokoto Caliphate', place:'Sokoto', date:'1804 to 1903', year:1804, lon:5.24, lat:13.06,
+   npc:'Malam Umaru', role:'Quranic school teacher', robe:'#F2EEE2', cap:'#1F6B55', relic:'Scholar\u2019s writing slate', cols:[[0,0,4.5],[4,-4,1.2]], npcOff:[8,5],
+   story:'In 1804 the scholar Usman dan Fodio launched a jihad against the Hausa kings. It created the Sokoto Caliphate, one of the largest states in 19th-century Africa, stretching across much of today\u2019s northern Nigeria until British conquest in 1903.',
+   fact:'His daughter Nana Asma\u2019u was a poet and teacher who wrote in Arabic, Fulfulde and Hausa and trained a network of women educators known as the Yan Taru.',
+   q:'Who founded the Sokoto Caliphate?', opts:['Usman dan Fodio','Oba Ewuare','Frederick Lugard'], a:0 },
+ { id:'abeokuta', title:'Olumo Rock and the women of Abeokuta', place:'Abeokuta, Ogun', date:'c. 1830 and 1946 to 1949', year:1830, lon:3.35, lat:7.15,
+   npc:'Iya Folake', role:'adire cloth maker', robe:'#28366E', cap:'#28366E', relic:'Adire cloth', cols:[[0,0,4.5],[3,2,3],[-3,1,2.5]], npcOff:[8,7],
+   story:'Around 1830, Egba refugees fleeing the wars that followed Oyo\u2019s collapse settled beneath Olumo Rock and founded Abeokuta. A century later, Funmilayo Ransome-Kuti led the Abeokuta Women\u2019s Union in mass protests against unfair taxes on market women.',
+   fact:'The protests forced the Alake, Ademola II, to leave the throne for a time in 1949.',
+   q:'What does the name \u201cAbeokuta\u201d mean?', opts:['City of rivers','Under the rock','House of kings'], a:1 },
+ { id:'lokoja', title:'Lokoja and the name \u201cNigeria\u201d', place:'Lokoja, Kogi', date:'1897 and 1914', year:1897, lon:6.45, lat:7.72,
+   npc:'Mr Ibrahim', role:'confluence ferryman', robe:'#8A6A3E', cap:'#1C2657', relic:'Newspaper page from 1897',
+   story:'Where the Niger meets the Benue, Lokoja was an early base for the Royal Niger Company. In 1897 journalist Flora Shaw proposed the name Nigeria in The Times. On 1 January 1914, Frederick Lugard merged the northern and southern protectorates into one colony.',
+   fact:'Lugard later married Flora Shaw. His residence still stands in Lokoja, looking over the meeting of the two rivers.',
+   q:'Where does the name \u201cNigeria\u201d come from?', opts:['The River Niger','A Hausa word for \u201cunited\u201d','A British general'], a:0 },
+ { id:'aba', title:'the Aba Women\u2019s War', place:'Aba, Abia', date:'1929', year:1929, lon:7.37, lat:5.11,
+   npc:'Mama Nkechi', role:'Ariaria market trader', robe:'#B53A4C', cap:'#E0B13A', relic:'Protest song, written down', cols:[[0,0,5]], npcOff:[8,4],
+   story:'In late 1929 word spread that women would be taxed under Britain\u2019s warrant-chief system. Tens of thousands of Igbo, Ibibio and other women mobilised across the southeast, using the custom of \u201csitting on a man\u201d: singing, dancing and shaming officials outside their compounds.',
+   fact:'Colonial troops killed more than 50 women. The protests forced reform of the warrant-chief system and are remembered as an early major challenge to colonial rule.',
+   q:'What sparked the 1929 protests?', opts:['A new railway line','Fears that women would be taxed','A ban on markets'], a:1 },
+ { id:'ibadan', title:'Ibadan\u2019s firsts', place:'Ibadan, Oyo', date:'1948 and 1959', year:1948, lon:3.90, lat:7.38,
+   npc:'Dr Bisi', role:'history lecturer', robe:'#4E6A8C', cap:'#2A2A2A', relic:'Television valve from 1959',
+   story:'Ibadan began as a war camp in the 1820s and grew into one of Africa\u2019s largest cities. In 1948 University College Ibadan opened as Nigeria\u2019s first university. In 1959 Western Nigeria Television began broadcasting here, often called the first TV station in Africa.',
+   fact:'Chinua Achebe and Wole Soyinka both studied at Ibadan. In 1986 Soyinka became the first African to win the Nobel Prize in Literature.',
+   q:'When did Nigeria\u2019s first university open in Ibadan?', opts:['1914','1948','1960'], a:1 },
+ { id:'lagos', title:'Independence in Lagos', place:'Tafawa Balewa Square, Lagos', date:'1 October 1960', year:1960, lon:3.42, lat:6.55,
+   npc:'Aunty Yemisi', role:'retired schoolteacher', robe:'#008751', cap:'#F4F2EC', relic:'Independence Day flag', cols:[[0,0,1],[-7,-7,3],[0,-8,3],[7,-7,3]],
+   story:'Britain took Lagos as a colony in 1861, its first foothold in what became Nigeria. Almost a century later, at midnight on 1 October 1960, the Union Jack was lowered at the Lagos Race Course and the green-white-green flag was raised. Abubakar Tafawa Balewa led the new nation as prime minister.',
+   fact:'The flag was designed by Taiwo Akinkunmi, a Nigerian student in London, who won a national competition in 1958.',
+   q:'Who designed Nigeria\u2019s flag?', opts:['Flora Shaw','Herbert Macaulay','Taiwo Akinkunmi'], a:2 },
+ { id:'enugu', title:'Enugu and the Civil War', place:'Enugu', date:'1967 to 1970', year:1967, lon:7.50, lat:6.45,
+   npc:'Papa Emeka', role:'veteran and grandfather', robe:'#5E5A50', cap:'#5E5A50', relic:'Biafran pound note',
+   story:'After the coups and killings of 1966, Lt. Col. Odumegwu Ojukwu declared the Republic of Biafra in Enugu on 30 May 1967. The war that followed lasted until January 1970. Estimates of the dead range from half a million to three million, most of them civilians who died of famine under blockade.',
+   fact:'When the war ended, head of state Yakubu Gowon declared \u201cno victor, no vanquished\u201d and launched a programme of reconciliation and reconstruction.',
+   q:'When did the Nigerian Civil War end?', opts:['October 1960','January 1970','June 1993'], a:1 },
+ { id:'abuja', title:'Abuja and the return to democracy', place:'Abuja, FCT', date:'1976 to 1999', year:1991, lon:7.49, lat:9.06,
+   npc:'Ms Zainab', role:'civil servant', robe:'#3B4F8C', cap:'#D4A537', relic:'1999 ballot paper', cols:[[0,-7,8],[7,6,4]], npcOff:[-7,6],
+   story:'In 1976 the government chose a site near the centre of the country for a new capital, so that no single region would dominate. Abuja officially replaced Lagos on 12 December 1991. On 29 May 1999, Olusegun Obasanjo was sworn in here, ending years of military rule.',
+   fact:'Since 2019, Democracy Day has been held on 12 June, honouring the annulled 1993 election widely believed to have been won by MKO Abiola.',
+   q:'When did Abuja officially become the capital?', opts:['1960','1976','1991'], a:2 }
+];
+const SKINS = ['#5A3A22','#6B4428','#7A4E2E','#4A2F1C','#83573A'];
+SITES.forEach((s, i) => {
+  const [x, z] = toW(s.lon, s.lat); s.x = x; s.z = z; s.era = eraOf(s.year); s.skin = SKINS[i % SKINS.length];
+  s.cols = s.cols || [[0, 0, 4]];
+  const o = s.npcOff || [7, 6]; s.nx = x + o[0]; s.nz = z + o[1];
+});
+const TOTAL = SITES.length;
+const TITLES = ['Wanderer','Traveller','Listener','Pathfinder','Seeker','Chronicler','Historian','Elder-in-training','Keeper of tales','Storykeeper'];
+
+/* ================= terrain ================= */
+const C = {
+  seabed:new THREE.Color('#1F4A55'), lakebed:new THREE.Color('#2D5B57'), neighbor:new THREE.Color('#B9AE8D'),
+  rock:new THREE.Color('#8B7B62'), beach:new THREE.Color('#E1CD95'), bank:new THREE.Color('#C8B07A'),
+  riverbed:new THREE.Color('#2C5B5C'), path:new THREE.Color('#B9976A')
+};
+const BANDS = [[13.9,'#CDAE68'],[12.2,'#BDA65B'],[10.5,'#99974E'],[8.6,'#6E8A45'],[7.0,'#4E793B'],[4.3,'#3A6641']].map(([l, c]) => [l, new THREE.Color(c)]);
+function bandColor(lat, out){
+  if (lat >= BANDS[0][0]) return out.copy(BANDS[0][1]);
+  for (let i = 0; i < BANDS.length - 1; i++) if (lat >= BANDS[i+1][0]){
+    const t = (BANDS[i][0] - lat) / (BANDS[i][0] - BANDS[i+1][0]);
+    return out.copy(BANDS[i][1]).lerp(BANDS[i+1][1], t);
+  }
+  return out.copy(BANDS[BANDS.length - 1][1]);
+}
+function terrainAt(x, z, c, noSites){
+  const lat = LATC - z / K;
+  const n = noise(x, z);
+  if (inside(x, z, SEAW)){ c.copy(C.seabed); return -2.5; }
+  const lk = ((x - LAKE.x) / LAKE.rx) ** 2 + ((z - LAKE.z) / LAKE.rz) ** 2;
+  if (lk < 1){ c.copy(C.lakebed); return -1.2; }
+  if (!inNG(x, z)){ c.copy(C.neighbor).offsetHSL(0, 0, n * .04); return 0.9 + n * .35; }
+  let h = 1.6 + n * 1.2;
+  for (const b of BUMPS){ const dx = x - b.x, dz = z - b.z; h += b.a * Math.exp(-(dx * dx + dz * dz) / (2 * b.s * b.s)); }
+  bandColor(lat, c); c.offsetHSL(0, 0, n * .05);
+  if (h > 4.5) c.lerp(C.rock, Math.min(1, (h - 4.5) / 4));
+  if (lat < 7.2){
+    const cd = lineDist(x, z, COAST);
+    if (cd < 9){ h = 0.4 + (h - 0.4) * (cd / 9); if (cd < 4) c.lerp(C.beach, 1 - cd / 4); }
+  }
+  const rd = riverDist(x, z);
+  if (rd < 0){ c.copy(C.riverbed); h = -0.8; }
+  else if (rd < 3.5){ const t = rd / 3.5; h = 0.25 + (h - 0.25) * t; c.lerp(C.bank, 1 - t); }
+  if (!noSites){
+    for (const s of SITES){
+      const d = Math.hypot(x - s.x, z - s.z);
+      if (d < 15){ const w = 1 - sstep(8, 15, d); h += (s.base - h) * w; if (d < 10) c.lerp(C.path, (1 - d / 10) * .6); }
+    }
+  }
+  return h;
+}
+const tmpC = new THREE.Color();
+SITES.forEach(s => { s.base = Math.max(1.5, terrainAt(s.x, s.z, tmpC, true)); });
+
+const SX = 220, SZ = 180;
+const heights = new Float32Array((SX + 1) * (SZ + 1));
+const colors = new Float32Array((SX + 1) * (SZ + 1) * 3);
+function sampleH(x, z){
+  const fx = Math.max(0, Math.min(SX - .001, (x - X0) / WW * SX)), fz = Math.max(0, Math.min(SZ - .001, (z - Z0) / DD * SZ));
+  const c0 = Math.floor(fx), r0 = Math.floor(fz), tx = fx - c0, tz = fz - r0, R = SX + 1;
+  const a = heights[r0 * R + c0], b = heights[r0 * R + c0 + 1], c = heights[(r0 + 1) * R + c0], d = heights[(r0 + 1) * R + c0 + 1];
+  return (a * (1 - tx) + b * tx) * (1 - tz) + (c * (1 - tx) + d * tx) * tz;
+}
+
+/* ================= three.js setup ================= */
+const view = $('#view');
+const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, TOUCH ? 1.5 : 1.75));
+renderer.setSize(innerWidth, innerHeight);
+const SHADOWS = !TOUCH;
+renderer.shadowMap.enabled = SHADOWS;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+view.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const HAZE = new THREE.Color('#E7C79C');
+scene.background = HAZE;
+scene.fog = new THREE.Fog(HAZE, 70, 250);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, .5, 700);
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+
+scene.add(new THREE.HemisphereLight(0xFFF1D6, 0x4A3C28, .55));
+const sun = new THREE.DirectionalLight(0xFFE2B0, .7);
+sun.castShadow = SHADOWS;
+sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left:-45, right:45, top:45, bottom:-45, near:1, far:200 });
+sun.shadow.bias = -.0008;
+scene.add(sun, sun.target);
+
+const matCache = {};
+function M(c){
+  if (matCache[c]) return matCache[c];
+  let m;
+  if (c === 'bronze') m = new THREE.MeshStandardMaterial({ color:0xA8742C, metalness:.65, roughness:.42, flatShading:true });
+  else if (c === 'gold') m = new THREE.MeshStandardMaterial({ color:0xD4A537, metalness:.7, roughness:.35, flatShading:true });
+  else if (c === 'glow') m = new THREE.MeshStandardMaterial({ color:0xFF8A3D, emissive:0xFF6A1D, emissiveIntensity:.9, flatShading:true });
+  else m = new THREE.MeshStandardMaterial({ color:c, roughness:.92, flatShading:true });
+  return (matCache[c] = m);
+}
+function mesh(geo, c, x = 0, y = 0, z = 0){ const m = new THREE.Mesh(geo, M(c)); m.position.set(x, y, z); m.castShadow = SHADOWS; m.receiveShadow = SHADOWS; return m; }
+const Box  = (w, h, d, c, x, y, z) => mesh(new THREE.BoxGeometry(w, h, d), c, x, y, z);
+const Cyl  = (rt, rb, h, c, x, y, z, s = 8) => mesh(new THREE.CylinderGeometry(rt, rb, h, s), c, x, y, z);
+const Cone = (r, h, c, x, y, z, s = 8) => mesh(new THREE.ConeGeometry(r, h, s), c, x, y, z);
+const Ball = (r, c, x, y, z, d = 1) => mesh(new THREE.IcosahedronGeometry(r, d), c, x, y, z);
+const sc = (m, x, y, z) => { m.scale.set(x, y, z); return m; };
+const rot = (m, x, y, z) => { m.rotation.set(x, y, z); return m; };
+
+function buildTerrain(){
+  const geo = new THREE.PlaneGeometry(WW, DD, SX, SZ);
+  geo.rotateX(-Math.PI / 2);
+  geo.translate((X0 + X1) / 2, 0, (Z0 + Z1) / 2);
+  const pos = geo.attributes.position, c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++){
+    const h = terrainAt(pos.getX(i), pos.getZ(i), c);
+    pos.setY(i, h); heights[i] = h;
+    colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  const t = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors:true, flatShading:true, roughness:1 }));
+  t.receiveShadow = SHADOWS;
+  scene.add(t);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(WW + 600, DD + 600), new THREE.MeshStandardMaterial({ color:0x3E8A8C, roughness:.35, metalness:.1, transparent:true, opacity:.88 }));
+  water.rotation.x = -Math.PI / 2; water.position.set((X0 + X1) / 2, 0, 0);
+  scene.add(water);
+}
+
+/* scatter: trees, rocks, huts */
+const colliders = [];
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function nearSite(x, z, r){ for (const s of SITES) if (Math.hypot(x - s.x, z - s.z) < r) return true; return false; }
+function scatter(){
+  const R = rng(42), dummy = new THREE.Object3D(), col = new THREE.Color();
+  const huts = [];
+  const villages = [];
+  // villages near historical places and spread across the country
+  SITES.forEach(s => { if (['lagos','abuja','ibadan','enugu'].includes(s.id)) return; villages.push([s.x, s.z, 3, 18, 26]); });
+  let tries = 0;
+  while (villages.length < 60 && tries++ < 3000){
+    const x = X0 + R() * WW, z = Z0 + R() * DD;
+    if (!inNG(x, z) || sampleH(x, z) < 1 || riverDist(x, z) < 6 || nearSite(x, z, 30)) continue;
+    villages.push([x, z, 3 + Math.floor(R() * 4), 0, 9]);
+  }
+  for (const [vx, vz, n, r0, r1] of villages){
+    for (let i = 0; i < n; i++){
+      const a = R() * Math.PI * 2, r = r0 + R() * (r1 - r0);
+      const x = vx + Math.cos(a) * r, z = vz + Math.sin(a) * r;
+      if (!inNG(x, z) || sampleH(x, z) < .9 || riverDist(x, z) < 2.5) continue;
+      if (huts.some(h => Math.hypot(h[0] - x, h[1] - z) < 4)) continue;
+      if (SITES.some(s => Math.hypot(s.nx - x, s.nz - z) < 5 || s.cols.some(([dx, dz, cr]) => Math.hypot(s.x + dx - x, s.z + dz - z) < cr + 3))) continue;
+      huts.push([x, z]);
+    }
+  }
+  const wallGeo = new THREE.CylinderGeometry(1, 1.05, 1, 9), roofGeo = new THREE.ConeGeometry(1, 1, 9);
+  const walls = new THREE.InstancedMesh(wallGeo, new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.95, flatShading:true }), huts.length);
+  const roofs = new THREE.InstancedMesh(roofGeo, new THREE.MeshStandardMaterial({ color:0xffffff, roughness:1, flatShading:true }), huts.length);
+  huts.forEach(([x, z], i) => {
+    const y = sampleH(x, z), lat = LATC - z / K;
+    dummy.position.set(x, y + .8, z); dummy.rotation.set(0, R() * 6, 0); dummy.scale.set(1.5, 1.7, 1.5); dummy.updateMatrix(); walls.setMatrixAt(i, dummy.matrix);
+    col.set(lat > 10 ? '#C39A64' : '#A9714A').offsetHSL(0, 0, (R() - .5) * .08); walls.setColorAt(i, col);
+    dummy.position.set(x, y + 2.4, z); dummy.scale.set(2, 1.7, 2); dummy.updateMatrix(); roofs.setMatrixAt(i, dummy.matrix);
+    col.set('#C9A55C').offsetHSL(0, 0, (R() - .5) * .1); roofs.setColorAt(i, col);
+    colliders.push([x, z, 1.8]);
+  });
+  walls.castShadow = roofs.castShadow = SHADOWS; walls.receiveShadow = SHADOWS;
+  scene.add(walls, roofs);
+
+  // trees
+  const cones = [], rounds = [], acacias = [], baobabs = [], rocks = [];
+  for (let i = 0; i < 12000; i++){
+    const x = X0 + R() * WW, z = Z0 + R() * DD;
+    if (!inNG(x, z)) continue;
+    const lat = LATC - z / K;
+    const p = lat < 6.5 ? .6 : lat < 8 ? .3 : lat < 10 ? .16 : lat < 12 ? .1 : .05;
+    if (R() > p) continue;
+    const h = sampleH(x, z);
+    if (h < .9 || riverDist(x, z) < 2.5 || nearSite(x, z, 14)) continue;
+    if (huts.some(t => Math.abs(t[0] - x) < 3.5 && Math.abs(t[1] - z) < 3.5)) continue;
+    if (h > 5.5 && R() < .5){ rocks.push([x, h, z]); continue; }
+    if (lat < 6.8) (R() < .7 ? cones : rounds).push([x, h, z, lat]);
+    else if (lat < 9) (R() < .6 ? rounds : acacias).push([x, h, z, lat]);
+    else if (lat < 11.8) (R() < .85 ? acacias : baobabs).push([x, h, z, lat]);
+    else (R() < .6 ? acacias : R() < .5 ? baobabs : rocks).push([x, h, z, lat]);
+  }
+  for (let i = 0; i < 500; i++){
+    const x = X0 + R() * WW, z = Z0 + R() * DD;
+    if (inNG(x, z) && sampleH(x, z) > 4 && !nearSite(x, z, 10)) rocks.push([x, sampleH(x, z), z]);
+  }
+  const all = cones.length + rounds.length + acacias.length + baobabs.length;
+  const trunkM = new THREE.InstancedMesh(new THREE.CylinderGeometry(.18, .28, 1, 5), new THREE.MeshStandardMaterial({ color:0x6B4A2E, roughness:1, flatShading:true }), all);
+  let ti = 0;
+  const trunk = (x, y, z, h, w) => { dummy.position.set(x, y + h / 2, z); dummy.rotation.set(0, 0, 0); dummy.scale.set(w, h, w); dummy.updateMatrix(); trunkM.setMatrixAt(ti++, dummy.matrix); };
+  function canopy(list, geo, fn){
+    const im = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color:0xffffff, roughness:1, flatShading:true }), list.length);
+    list.forEach((t, i) => { fn(t, dummy, col); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); im.setColorAt(i, col); });
+    im.castShadow = SHADOWS; scene.add(im);
+  }
+  canopy(cones, new THREE.ConeGeometry(1, 1, 6), ([x, y, z], d, c) => { const s = 1.6 + R() * 1.4, h = 5 + R() * 5; trunk(x, y, z, 1.4, 1); d.position.set(x, y + 1.2 + h / 2, z); d.rotation.set(0, R() * 6, 0); d.scale.set(s, h, s); c.set('#2F5E34').offsetHSL((R() - .5) * .03, 0, (R() - .5) * .1); });
+  canopy(rounds, new THREE.IcosahedronGeometry(1, 0), ([x, y, z], d, c) => { const s = 1.8 + R() * 1.6, th = 2 + R() * 1.5; trunk(x, y, z, th, 1.1); d.position.set(x, y + th + s * .6, z); d.rotation.set(R(), R() * 6, 0); d.scale.set(s, s * .85, s); c.set('#4A7A3A').offsetHSL((R() - .5) * .04, 0, (R() - .5) * .1); });
+  canopy(acacias, new THREE.CylinderGeometry(1, .55, .5, 7), ([x, y, z, lat], d, c) => { const s = 2 + R() * 1.6, th = 2.6 + R() * 1.6; trunk(x, y, z, th, .8); d.position.set(x, y + th + .2, z); d.rotation.set(0, R() * 6, 0); d.scale.set(s, 1 + R() * .5, s * (.8 + R() * .3)); c.set(lat > 11 ? '#8A9444' : '#6B8A3E').offsetHSL(0, 0, (R() - .5) * .1); });
+  canopy(baobabs, new THREE.IcosahedronGeometry(1, 0), ([x, y, z], d, c) => { const th = 3.5 + R() * 1.5; trunk(x, y, z, th, 4.2); d.position.set(x, y + th + .6, z); d.rotation.set(0, R() * 6, 0); d.scale.set(2.6, 1.1, 2.6); c.set('#7C8A46').offsetHSL(0, 0, (R() - .5) * .1); });
+  trunkM.count = ti; trunkM.castShadow = SHADOWS; scene.add(trunkM);
+  canopy(rocks, new THREE.IcosahedronGeometry(1, 0), ([x, y, z], d, c) => { const s = .8 + R() * 2.2; d.position.set(x, y + s * .3, z); d.rotation.set(R() * 3, R() * 3, R() * 3); d.scale.set(s, s * .7, s); c.set('#8B7F6C').offsetHSL(0, 0, (R() - .5) * .12); });
+  baobabs.forEach(([x, , z]) => colliders.push([x, z, 1.2]));
+  acacias.forEach(([x, , z]) => colliders.push([x, z, .5]));
+  rounds.forEach(([x, , z]) => colliders.push([x, z, .5]));
+}
+
+/* landmarks */
+const flags = [];
+const BUILD = {
+  nok(g){
+    g.add(Box(3.2, 1.2, 3.2, '#7A6A55', 0, .6, 0), Cyl(.7, .9, 1, '#B4643A', 0, 1.7, 0));
+    g.add(sc(Ball(1.6, '#B4643A', 0, 3.4, 0), 1, 1.25, 1.05));
+    g.add(rot(Box(.6, .22, .3, '#3A1F12', -.55, 3.7, 1.5), 0, 0, .35), rot(Box(.6, .22, .3, '#3A1F12', .55, 3.7, 1.5), 0, 0, -.35));
+    g.add(Box(.7, .15, .3, '#3A1F12', 0, 2.8, 1.55), sc(Ball(.9, '#A55A33', 0, 5.3, -.3), 1.2, .8, 1));
+    g.add(rot(Ball(.5, '#B4643A', 3, .3, 2, 0), .4, .3, 0), rot(Ball(.4, '#A55A33', -2.6, .25, 2.6, 0), 1, 0, .4));
+  },
+  kanem(g){
+    for (let i = 1; i < 14; i++){ const a = i / 14 * Math.PI * 2; const b = Box(2.9, 3.2, 1, '#B98A55', Math.cos(a) * 6, 1.6, Math.sin(a) * 6); b.rotation.y = -a + Math.PI / 2; g.add(b); }
+    g.add(Box(4, 3, 4, '#A9794A', 0, 1.5, 0), sc(Ball(1.8, '#B98A55', 0, 3.2, 0), 1, .7, 1));
+  },
+  igboukwu(g){
+    g.add(Cyl(1.1, 1.4, 1, '#6B5038', 0, .5, 0), sc(Ball(1.5, 'bronze', 0, 2.3, 0), 1, .8, 1), Cyl(.55, .9, 1, 'bronze', 0, 3.4, 0), Cyl(.9, .7, .3, 'bronze', 0, 4, 0));
+    ['#2E6F73','#E0B13A','#A33B2B','#1C2657','#E9E2CF','#2E6F73','#A33B2B','#E0B13A'].forEach((c, i) => { const a = i / 8 * Math.PI * 2; g.add(Ball(.22, c, Math.cos(a) * 2.6, .2, Math.sin(a) * 2.6, 0)); });
+  },
+  kano(g){
+    g.add(Box(2, 6.5, 2, '#B5794A', -3.5, 3.25, 0), Box(2, 6.5, 2, '#B5794A', 3.5, 3.25, 0), Box(5, 1.6, 1.8, '#A86C40', 0, 5.6, 0));
+    g.add(Cone(1.2, 1.4, '#9C6238', -3.5, 7.2, 0, 4), Cone(1.2, 1.4, '#9C6238', 3.5, 7.2, 0, 4));
+    g.add(Box(9, 4.2, 1.4, '#B07447', -9, 2.1, 0), Box(9, 4.2, 1.4, '#B07447', 9, 2.1, 0));
+    [[-3, 5], [0, 6], [3, 5], [-1.5, 8], [1.5, 8]].forEach(([x, z]) => g.add(Cyl(1, 1.1, .5, '#8C6A44', x, .25, z), Cyl(.8, .8, .52, '#1C2657', x, .26, z, 10)));
+  },
+  ife(g){
+    g.add(Box(2.6, 2.4, 2.6, '#5E5141', 0, 1.2, 0), sc(Ball(1.15, 'bronze', 0, 3.6, 0), .9, 1.2, 1), Cyl(1.05, .95, 1, 'bronze', 0, 4.9, 0), Cone(.5, 1.3, 'bronze', 0, 6, 0));
+    g.add(Box(1.4, 1.2, 1.4, '#5E5141', -3.6, .6, 1), sc(Ball(.6, '#B4643A', -3.6, 1.8, 1), .9, 1.2, 1), Box(1.4, 1.2, 1.4, '#5E5141', 3.6, .6, 1), sc(Ball(.6, '#B4643A', 3.6, 1.8, 1), .9, 1.2, 1));
+  },
+  benin(g){
+    g.add(Box(24, 3.2, 3.5, '#8A5A35', 0, 1.6, -4), Box(24, .2, 2.4, '#2C6A78', 0, .05, -1.4));
+    g.add(Cyl(1.6, 2, 5, '#9C5B36', 4, 2.5, 2), Cone(2.2, 3, '#6B3E22', 4, 6.5, 2, 4));
+    g.add(Box(.25, 3.2, .25, '#5A3A22', -4.1, 1.6, 2), Box(.25, 3.2, .25, '#5A3A22', -1.9, 1.6, 2), Box(2.2, 2.6, .25, 'bronze', -3, 2.4, 2));
+    g.add(Box(1.2, .5, .1, '#7A5320', -3, 2.8, 2.15), Box(.5, 1.2, .1, '#7A5320', -3, 2.1, 2.15));
+  },
+  sukur(g){
+    for (let i = 0; i < 4; i++) g.add(Box(12 - 2.6 * i, 1.3, 10 - 2.2 * i, i % 2 ? '#8E8574' : '#7E7666', 0, .65 + 1.3 * i, 0));
+    g.add(Cyl(1.2, 1.4, 1.6, '#9A9283', 0, 6, 0), Cone(1.7, 1.6, '#C7A86A', 0, 7.6, 0));
+    g.add(Cyl(.6, .9, 2, '#6E5A44', 7, 1, 4), Ball(.35, 'glow', 7, 2.1, 4, 0));
+  },
+  oyo(g){
+    g.add(Box(4.4, 1.2, 2.2, '#6E6455', 0, .6, 0), Box(3, 1.3, 1.1, 'bronze', 0, 2.8, 0));
+    g.add(rot(Box(.7, 1.7, .7, 'bronze', 1.5, 3.6, 0), 0, 0, -.5), Box(1.3, .6, .6, 'bronze', 2.2, 4.3, 0), rot(Box(.2, 1.3, .2, 'bronze', -1.7, 2.7, 0), 0, 0, .45));
+    [[1.1, .35], [1.1, -.35], [-1.1, .35], [-1.1, -.35]].forEach(([x, z]) => g.add(Box(.32, 1.7, .32, 'bronze', x, 1.95, z)));
+    g.add(Box(.7, 1.3, .6, 'bronze', -.2, 4, 0), Ball(.36, 'bronze', -.2, 5, 0), rot(Box(.12, 2.6, .12, 'bronze', .4, 4.6, .45), 0, 0, -.35));
+  },
+  osun(g){
+    for (let i = 0; i < 6; i++){
+      const a = -Math.PI * .9 + i * .36, x = Math.cos(a) * 6, z = Math.sin(a) * 6 - 2, h = 4 + (i % 3) * 1.6;
+      g.add(Cyl(.35, .7, h, '#CBBFA4', x, h / 2, z, 6), sc(Ball(.7, '#CBBFA4', x, h + .4, z), 1, 1.4, .8));
+    }
+    for (let i = 0; i < 8; i++){ const a = i / 8 * Math.PI * 2, r = 11; g.add(Cyl(.25, .35, 3, '#5A3F28', Math.cos(a) * r, 1.5, Math.sin(a) * r, 5), Ball(2.2, '#2F5E34', Math.cos(a) * r, 4.4, Math.sin(a) * r, 0)); }
+  },
+  aro(g){
+    g.add(sc(Ball(4, '#5C5248', 0, 1.6, 0, 1), 1.4, .75, 1.1), Box(2, 2.6, 1.4, '#141010', 0, 1.3, 4.2));
+    g.add(Box(.4, 3, .4, '#6B4A2E', -1.6, 1.5, 5.2), Box(.4, 3, .4, '#6B4A2E', 1.6, 1.5, 5.2), Box(3.8, .4, .5, '#6B4A2E', 0, 3, 5.2));
+  },
+  badagry(g){
+    g.add(Box(1.2, 6, 1.2, '#D9D2C3', -2.5, 3, 0), Box(1.2, 6, 1.2, '#D9D2C3', 2.5, 3, 0), Box(6.6, 1, 1.5, '#D9D2C3', 0, 6.4, 0));
+    g.add(Box(4.4, 5, 3.4, '#E7DDC8', 7, 2.5, 2), rot(Cone(3.4, 1.6, '#8A4A2E', 7, 5.8, 2, 4), 0, Math.PI / 4, 0));
+    [[5.6, 1.3], [8.4, 1.3], [5.6, 3.7], [8.4, 3.7]].forEach(([x, y]) => g.add(Box(.8, 1, .1, '#3A3428', x, y, 3.72)));
+  },
+  calabar(g){
+    [[-2, 0], [-.4, .3], [1.2, -.2], [-1.2, 1.6], [.6, 1.6], [2.6, 1.2]].forEach(([x, z]) => g.add(Cyl(.7, .7, 1.4, '#7A4A24', x, .7, z), Cyl(.72, .72, .15, '#3A3A3A', x, 1.1, z)));
+    g.add(Box(7, .7, 1.3, '#5E3B20', 2, .35, 6), Box(6.2, .2, .9, '#3A2412', 2, .72, 6), rot(Box(.15, 3, .15, '#8A6A3E', 4, 1, 6.6), .5, 0, .8));
+  },
+  sokoto(g){
+    g.add(Box(6.5, 3.6, 6.5, '#E8DCC4', 0, 1.8, 0));
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(2.7, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), M('#2F6B55')); dome.position.y = 3.6; dome.castShadow = SHADOWS; g.add(dome);
+    g.add(Cyl(.7, .9, 9, '#E8DCC4', 4, 4.5, -4), Cone(.9, 1.6, '#2F6B55', 4, 9.8, -4), Box(2, 2.6, .2, '#3A3428', 0, 1.3, 3.3));
+  },
+  abeokuta(g){
+    g.add(sc(Ball(4, '#7D776E', 0, 3.2, 0, 0), 1, 1.6, .9), sc(Ball(3, '#878075', 3.2, 2, 2, 0), 1, 1.1, 1), sc(Ball(2.6, '#6F695F', -3, 1.5, 1.2, 0), 1, .9, 1));
+    g.add(Box(.15, 2.4, .15, '#6B4A2E', 5, 1.2, 6), Box(.15, 2.4, .15, '#6B4A2E', 10, 1.2, 6));
+    g.add(Box(1.4, 1.8, .05, '#28366E', 6.2, 1.4, 6), Box(1.4, 1.8, .05, '#3B4C8C', 7.6, 1.4, 6), Box(1.4, 1.8, .05, '#28366E', 9, 1.4, 6));
+  },
+  lokoja(g){
+    g.add(Box(6.4, .8, 5.2, '#6F6050', 0, .4, 0), Box(5.6, 3, 4.6, '#E9E2CF', 0, 2.3, 0), rot(Cone(4.6, 2, '#7A3A2A', 0, 4.8, 0, 4), 0, Math.PI / 4, 0));
+    [[-2.4, 2.6], [0, 2.6], [2.4, 2.6]].forEach(([x, z]) => g.add(Box(.25, 3, .25, '#F4F0E4', x, 2.3, z)));
+    g.add(Cyl(.08, .1, 8, '#CCCCCC', 5, 4, 3));
+  },
+  aba(g){
+    const cloth = ['#C9483A','#E0B13A','#2F7A6E','#1C2657','#B53A4C','#E9E2CF'];
+    for (let i = 0; i < 6; i++){
+      const x = (i % 3) * 4 - 4, z = Math.floor(i / 3) * 4.5 - 2;
+      [[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]].forEach(([a, b]) => g.add(Box(.15, 2.4, .15, '#6B4A2E', x + a, 1.2, z + b)));
+      g.add(Box(3, .15, 3, cloth[i], x, 2.45, z), Box(2, .8, 1.2, '#8A6A3E', x, .4, z), Ball(.3, cloth[(i + 2) % 6], x - .4, 1, z, 0), Ball(.3, cloth[(i + 3) % 6], x + .4, 1, z, 0));
+    }
+  },
+  ibadan(g){
+    g.add(Box(3.6, 14, 3.6, '#E2DBCB', 0, 7, 0), Box(4.2, 1, 4.2, '#B07A26', 0, 14.5, 0));
+    for (let y = 2; y < 14; y += 2) g.add(Box(3.7, .18, 3.7, '#7A7468', 0, y, 0));
+    g.add(Box(8, 3, 4, '#D8CFBA', -8, 1.5, -2), Box(5, 6, 4, '#CFC6B0', 7, 3, -4));
+  },
+  lagos(g){
+    g.add(Box(12, .8, 7, '#C9C2B1', 0, .4, -2), Cyl(.1, .13, 10, '#DDDDDD', 0, 5.8, 0));
+    const f = new THREE.Group(); f.position.set(0, 9.7, 0);
+    f.add(Box(1.1, 2.1, .06, '#008751', .6, 0, 0), Box(1.1, 2.1, .06, '#F4F2EC', 1.7, 0, 0), Box(1.1, 2.1, .06, '#008751', 2.8, 0, 0));
+    g.add(f); flags.push(f);
+    g.add(Box(6, 2.5, 1.5, '#9FA7B5', -7, 1.25, -7), Box(6, 3.5, 1.5, '#9FA7B5', 0, 1.75, -8), Box(6, 2.5, 1.5, '#9FA7B5', 7, 1.25, -7));
+    [[-14, -14, 12], [-9, -18, 18], [10, -16, 14], [15, -12, 9]].forEach(([x, z, h]) => g.add(Box(4, h, 4, '#B7BCC6', x, h / 2, z)));
+  },
+  enugu(g){
+    g.add(Box(3, 1, 3, '#9C9488', 0, .5, 0), rot(Cyl(.5, 1.1, 8, '#D8D2C6', 0, 5, 0, 4), 0, Math.PI / 4, 0));
+    g.add(sc(Ball(2, '#2A2724', 6, .5, 3, 0), 1.2, .45, 1), sc(Ball(1.4, '#36322E', 7.5, .4, 1.2, 0), 1, .5, 1));
+    g.add(Box(1.2, 2, .3, '#4A4640', 4, 1, 5), Box(.3, 1.2, .3, '#4A4640', 4, 2.4, 5));
+  },
+  abuja(g){
+    g.add(sc(Ball(7, '#7B7466', 0, 3, -7, 1), 1.4, 1.15, .9));
+    g.add(Box(6, 3, 6, '#EFE8D8', 7, 1.5, 6));
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(2.5, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), M('gold')); dome.position.set(7, 3, 6); dome.castShadow = SHADOWS; g.add(dome);
+    [[3.6, 2.6], [10.4, 2.6], [3.6, 9.4], [10.4, 9.4]].forEach(([x, z]) => g.add(Cyl(.3, .4, 7, '#EFE8D8', x, 3.5, z), Cone(.45, 1, 'gold', x, 7.5, z)));
+  }
+};
+
+/* people */
+function makePerson(o){
+  const g = new THREE.Group();
+  const legL = new THREE.Group(), legR = new THREE.Group(), armL = new THREE.Group(), armR = new THREE.Group();
+  legL.position.set(-.22, 1.1, 0); legR.position.set(.22, 1.1, 0);
+  legL.add(Box(.32, 1.1, .32, o.pants, 0, -.55, 0)); legR.add(Box(.32, 1.1, .32, o.pants, 0, -.55, 0));
+  armL.position.set(-.6, 2.2, 0); armR.position.set(.6, 2.2, 0);
+  armL.add(Box(.26, 1, .26, o.robe, 0, -.45, 0), Ball(.14, o.skin, 0, -1.02, 0, 0));
+  armR.add(Box(.26, 1, .26, o.robe, 0, -.45, 0), Ball(.14, o.skin, 0, -1.02, 0, 0));
+  const body = o.long ? Box(1, 1.9, .62, o.robe, 0, 1.35, 0) : Box(.92, 1.25, .52, o.robe, 0, 1.72, 0);
+  g.add(legL, legR, armL, armR, body, Ball(.36, o.skin, 0, 2.68, 0, 1), Box(.4, .1, .05, '#1A120C', 0, 2.75, .33));
+  if (o.cap) g.add(Cyl(.3, .36, .38, o.cap, 0, 3.02, 0, 9));
+  if (o.sash) g.add(rot(Box(.12, 1.4, .56, o.sash, 0, 1.8, 0), 0, 0, .6));
+  return { g, legL, legR, armL, armR };
+}
+
+/* ================= state ================= */
+const KEY = 'storykeeper-nigeria-v1';
+const state = { name:'Traveller', xp:0, disc:{}, done:{}, eras:{}, fin:false, pos:null, yaw:Math.PI * .85 };
+const EG = 8, EGW = Math.ceil(WW / EG), EGH = Math.ceil(DD / EG);
+const explored = new Uint8Array(EGW * EGH), egNG = new Uint8Array(EGW * EGH);
+let egTotal = 0, egSeen = 0;
+for (let j = 0; j < EGH; j++) for (let i = 0; i < EGW; i++) if (inNG(X0 + i * EG + EG / 2, Z0 + j * EG + EG / 2)){ egNG[j * EGW + i] = 1; egTotal++; }
+
+function save(){
+  try {
+    let g = ''; for (let i = 0; i < explored.length; i++) g += explored[i];
+    state.pos = [Math.round(player.x * 10) / 10, Math.round(player.z * 10) / 10];
+    state.yaw = cam.yaw;
+    localStorage.setItem(KEY, JSON.stringify({ ...state, g }));
+  } catch (e) {}
+}
+function load(){
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  if (!d) return false;
+  if (typeof d.name === 'string') state.name = d.name.slice(0, 24) || 'Traveller';
+  state.xp = Number(d.xp) || 0;
+  for (const s of SITES){ if (d.disc && d.disc[s.id]) state.disc[s.id] = 1; if (d.done && d.done[s.id]) state.done[s.id] = { c: !!d.done[s.id].c }; }
+  for (const e of ERAS) if (d.eras && d.eras[e.id]) state.eras[e.id] = 1;
+  state.fin = !!d.fin;
+  if (Array.isArray(d.pos) && inNG(d.pos[0], d.pos[1])) state.pos = d.pos;
+  if (typeof d.yaw === 'number') state.yaw = d.yaw;
+  if (typeof d.g === 'string' && d.g.length === explored.length) for (let i = 0; i < explored.length; i++) if (d.g[i] === '1'){ explored[i] = 1; if (egNG[i]) egSeen++; }
+  return true;
+}
+
+/* ================= minimap ================= */
+const MW = SX + 1, MH = SZ + 1;
+const baseMap = document.createElement('canvas'); baseMap.width = MW; baseMap.height = MH;
+const fogMap = document.createElement('canvas'); fogMap.width = MW; fogMap.height = MH;
+const fogCtx = fogMap.getContext('2d');
+function buildMapImages(){
+  const c = baseMap.getContext('2d'), img = c.createImageData(MW, MH);
+  for (let i = 0; i < MW * MH; i++){
+    let r = colors[i * 3], g = colors[i * 3 + 1], b = colors[i * 3 + 2];
+    if (heights[i] < 0){ r = .243; g = .541; b = .549; }
+    img.data[i * 4] = r * 255; img.data[i * 4 + 1] = g * 255; img.data[i * 4 + 2] = b * 255; img.data[i * 4 + 3] = 255;
+  }
+  c.putImageData(img, 0, 0);
+  c.strokeStyle = 'rgba(40,28,14,.7)'; c.lineWidth = 1; c.beginPath();
+  NGW.forEach(([x, z], i) => { const px = (x - X0) / WW * SX, pz = (z - Z0) / DD * SZ; i ? c.lineTo(px, pz) : c.moveTo(px, pz); }); c.closePath(); c.stroke();
+  fogCtx.fillStyle = '#1C2657'; fogCtx.fillRect(0, 0, MW, MH);
+  fogCtx.fillStyle = 'rgba(205,215,250,.18)';
+  for (let y = 2; y < MH; y += 6) for (let x = (y / 6 % 2) * 3 + 2; x < MW; x += 6){ fogCtx.beginPath(); fogCtx.arc(x, y, .9, 0, 7); fogCtx.fill(); }
+  for (let i = 0; i < explored.length; i++) if (explored[i]) carveMap((i % EGW) * EG + EG / 2 + X0, Math.floor(i / EGW) * EG + EG / 2 + Z0, 9);
+}
+const toMap = (x, z) => [(x - X0) / WW * SX, (z - Z0) / DD * SZ];
+function carveMap(x, z, r){
+  const [px, pz] = toMap(x, z), pr = r / WW * SX * 1.4;
+  fogCtx.globalCompositeOperation = 'destination-out';
+  const g = fogCtx.createRadialGradient(px, pz, 0, px, pz, pr);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(.65, 'rgba(0,0,0,.95)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  fogCtx.fillStyle = g; fogCtx.beginPath(); fogCtx.arc(px, pz, pr, 0, 7); fogCtx.fill();
+  fogCtx.globalCompositeOperation = 'source-over';
+}
+function explore(x, z){
+  const R = 26, i0 = Math.max(0, Math.floor((x - R - X0) / EG)), i1 = Math.min(EGW - 1, Math.floor((x + R - X0) / EG));
+  const j0 = Math.max(0, Math.floor((z - R - Z0) / EG)), j1 = Math.min(EGH - 1, Math.floor((z + R - Z0) / EG));
+  let any = false;
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++){
+    const k = j * EGW + i; if (explored[k]) continue;
+    if (Math.hypot(X0 + i * EG + EG / 2 - x, Z0 + j * EG + EG / 2 - z) < R){ explored[k] = 1; if (egNG[k]) egSeen++; any = true; }
+  }
+  if (any) carveMap(x, z, R);
+}
+const mm = $('#mm'), mctx = mm.getContext('2d');
+function sizeMM(){ const r = mm.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2); mm.width = Math.round(r.width * d); mm.height = Math.round(r.height * d); }
+addEventListener('resize', sizeMM);
+function markerColor(s){ return state.done[s.id] ? s.era.color : '#E9C98A'; }
+function drawMinimap(){
+  const w = mm.width, h = mm.height, span = 64;
+  const [px, pz] = toMap(player.x, player.z);
+  mctx.save();
+  mctx.fillStyle = '#1C2657'; mctx.fillRect(0, 0, w, h);
+  mctx.beginPath(); mctx.arc(w / 2, h / 2, w / 2, 0, 7); mctx.clip();
+  const sx = px - span / 2, sy = pz - span / 2;
+  mctx.imageSmoothingEnabled = true;
+  mctx.drawImage(baseMap, sx, sy, span, span, 0, 0, w, h);
+  mctx.drawImage(fogMap, sx, sy, span, span, 0, 0, w, h);
+  const k = w / span;
+  for (const s of SITES){
+    if (!state.disc[s.id] && !(askUntil > performance.now() && s === askSite)) continue;
+    const [mx, mz] = toMap(s.nx, s.nz);
+    const x = (mx - sx) * k, y = (mz - sy) * k;
+    mctx.fillStyle = markerColor(s); mctx.strokeStyle = '#1C2657'; mctx.lineWidth = 2 * k / 2.6;
+    mctx.beginPath(); mctx.arc(Math.max(8, Math.min(w - 8, x)), Math.max(8, Math.min(h - 8, y)), 5 * k / 2.6, 0, 7); mctx.fill(); mctx.stroke();
+  }
+  mctx.translate(w / 2, h / 2); mctx.rotate(player.rot);
+  mctx.fillStyle = '#FFF8E8'; mctx.strokeStyle = '#1C2657'; mctx.lineWidth = 2;
+  const a = w / 26; mctx.beginPath(); mctx.moveTo(0, a * 1.1); mctx.lineTo(-a * .75, -a * .7); mctx.lineTo(0, -a * .3); mctx.lineTo(a * .75, -a * .7); mctx.closePath(); mctx.fill(); mctx.stroke();
+  mctx.restore();
+}
+
+/* ================= world objects ================= */
+const npcs = [];
+const beamGeo = new THREE.CylinderGeometry(1.4, 1.4, 160, 12, 1, true);
+const beamMat = new THREE.MeshBasicMaterial({ color:0xFFD27A, transparent:true, opacity:.35, depthWrite:false, side:THREE.DoubleSide, fog:false });
+function markerTex(kind, color){
+  const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+  x.fillStyle = kind === 'new' ? '#E9C98A' : color; x.strokeStyle = '#1C2657'; x.lineWidth = 8;
+  x.beginPath(); x.arc(64, 64, 52, 0, 7); x.fill(); x.stroke();
+  x.fillStyle = kind === 'new' ? '#1C2657' : '#FFF8E8';
+  if (kind === 'new'){ x.font = '700 76px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('!', 64, 68); }
+  else { x.beginPath(); x.moveTo(64, 34); x.lineTo(94, 64); x.lineTo(64, 94); x.lineTo(34, 64); x.closePath(); x.fill(); }
+  const t = new THREE.CanvasTexture(c); return t;
+}
+const NEW_TEX = markerTex('new');
+const DONE_TEX = {}; ERAS.forEach(e => DONE_TEX[e.id] = markerTex('done', e.color));
+function buildSites(){
+  for (const s of SITES){
+    const g = new THREE.Group(); g.position.set(s.x, s.base - .05, s.z);
+    BUILD[s.id](g); scene.add(g);
+    s.cols.forEach(([dx, dz, r]) => colliders.push([s.x + dx, s.z + dz, r]));
+    const p = makePerson({ robe:s.robe, cap:s.cap, skin:s.skin, pants:'#3A3026', long:true });
+    p.g.position.set(s.nx, sampleH(s.nx, s.nz), s.nz);
+    p.g.rotation.y = Math.atan2(s.x - s.nx, s.z - s.nz) + .6;
+    p.g.scale.setScalar(1.15);
+    scene.add(p.g);
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map:NEW_TEX, depthTest:false, fog:false }));
+    spr.scale.set(1.6, 1.6, 1); spr.position.set(s.nx, p.g.position.y + 4.8, s.nz); spr.renderOrder = 5;
+    scene.add(spr);
+    const beam = new THREE.Mesh(beamGeo, beamMat); beam.position.set(s.nx, 80, s.nz); beam.visible = false; scene.add(beam);
+    colliders.push([s.nx, s.nz, .9]);
+    s.person = p; s.sprite = spr; s.beam = beam; s.phase = Math.random() * 6;
+    npcs.push(s);
+    refreshMarker(s);
+  }
+}
+function refreshMarker(s){
+  const done = state.done[s.id];
+  s.sprite.material.map = done ? DONE_TEX[s.era.id] : NEW_TEX;
+  s.sprite.material.needsUpdate = true;
+  s.sprite.material.opacity = done ? .85 : 1;
+}
+
+/* ================= player & camera ================= */
+const start = toW(6.95, 8.35);
+const player = { x:start[0], z:start[1], y:0, rot:Math.PI, vx:0, vz:0, walk:0 };
+const hero = makePerson({ robe:'#2B3A7A', cap:'#B07A26', skin:'#5E3B22', pants:'#E9E2CF', sash:'#E9C98A' });
+hero.g.scale.setScalar(1.15);
+scene.add(hero.g);
+const cam = { yaw:Math.PI * .85, pitch:.42, dist:17, x:0, y:0, z:0 };
+
+/* ================= UI helpers ================= */
+const level = xp => Math.min(10, Math.floor(xp / 250) + 1);
+function updateHUD(){
+  $('#pName').textContent = state.name;
+  const L = level(state.xp);
+  $('#pLvl').textContent = `Level ${L} ${TITLES[L - 1]}. ${state.xp} XP`;
+  const pct = L >= 10 ? 100 : (state.xp % 250) / 250 * 100;
+  $('#xpFill').style.width = pct + '%'; $('#xpWrap').setAttribute('aria-valuenow', Math.round(pct));
+  const ol = $('#qList'); ol.innerHTML = '';
+  ERAS.forEach(e => {
+    const all = SITES.filter(s => s.era === e), got = all.filter(s => state.done[s.id]).length;
+    const li = document.createElement('li'); if (got === all.length) li.className = 'done';
+    li.innerHTML = `<i style="background:${e.color}"></i><span></span><span>${got}/${all.length}</span>`;
+    li.children[1].textContent = e.name; ol.appendChild(li);
+  });
+}
+function toast(html){
+  const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = html;
+  $('#toasts').appendChild(t); setTimeout(() => t.remove(), 3700);
+  while ($('#toasts').children.length > 3) $('#toasts').firstChild.remove();
+}
+const esc = s => s.replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+function gainXP(n, why){
+  const before = level(state.xp);
+  state.xp += n;
+  toast(`<b>+${n} XP</b> ${esc(why)}`);
+  const after = level(state.xp);
+  if (after > before) setTimeout(() => toast(`<b>Level ${after}</b> You are now a ${TITLES[after - 1]}`), 500);
+  updateHUD();
+}
+
+/* ================= dialogue ================= */
+let modal = 'intro', talkSite = null, dlgStep = 0, dlgMode = 'first';
+function openDialogue(s){
+  talkSite = s; modal = 'dlg'; clearInput();
+  dlgMode = state.done[s.id] ? 'again' : 'first'; dlgStep = 0;
+  $('#dlgName').textContent = s.npc; $('#dlgRole').textContent = s.role;
+  $('#dlg').hidden = false; $('#prompt').hidden = true;
+  renderDlg();
+  $('#dlgNext').focus();
+}
+function closeDialogue(){
+  $('#dlg').hidden = true; modal = null;
+  const s = talkSite; talkSite = null;
+  if (s) refreshMarker(s);
+  $('#view').focus();
+  if (!state.fin && Object.keys(state.done).length === TOTAL){ state.fin = true; save(); setTimeout(showFinale, 400); }
+}
+function renderDlg(){
+  const s = talkSite, text = $('#dlgText'), opts = $('#dlgOpts'), rew = $('#dlgReward'), next = $('#dlgNext');
+  opts.innerHTML = ''; rew.innerHTML = ''; next.hidden = false; next.textContent = 'Continue';
+  if (dlgMode === 'again'){
+    if (dlgStep === 0){
+      text.textContent = `Back again, ${state.name}? I can tell you about ${s.title} once more, if you like.`;
+      next.textContent = 'Tell me again';
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Not now, thank you'; b.addEventListener('click', closeDialogue); opts.appendChild(b);
+    } else if (dlgStep === 1){ text.textContent = s.story; }
+    else if (dlgStep === 2){ text.textContent = s.fact; next.textContent = 'Thank you'; }
+    else closeDialogue();
+    return;
+  }
+  if (dlgStep === 0){
+    text.innerHTML = '';
+    text.append(`Welcome, ${state.name}. Sit with me a while and I will tell you about ${s.title}.`);
+    const m = document.createElement('span'); m.className = 'meta'; m.textContent = `${s.place}. ${s.date}. ${s.era.name}.`; text.appendChild(m);
+  } else if (dlgStep === 1){ text.textContent = s.story; }
+  else if (dlgStep === 2){ text.textContent = `And remember this: ${s.fact}`; next.textContent = 'I\u2019m ready for your question'; }
+  else if (dlgStep === 3){
+    text.textContent = `Now tell me. ${s.q}`; next.hidden = true;
+    s.opts.forEach((o, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = o; b.addEventListener('click', () => answer(i)); opts.appendChild(b); });
+    opts.firstChild.focus();
+  } else closeDialogue();
+}
+function answer(i){
+  const s = talkSite, ok = i === s.a;
+  [...$('#dlgOpts').children].forEach((b, k) => { b.disabled = true; if (k === s.a) b.classList.add('right'); else if (k === i) b.classList.add('wrong'); });
+  $('#dlgText').textContent = ok ? `That\u2019s right. You listened well, ${state.name}. Take this, so you remember.` : `Not quite. The answer is: ${s.opts[s.a]}. Keep it with you, and take this to remember.`;
+  state.done[s.id] = { c: ok };
+  $('#dlgReward').innerHTML = `<div class="reward"><i style="background:${s.era.color}"></i><span><b>Relic received:</b> ${esc(s.relic)}</span></div>`;
+  gainXP(ok ? 100 : 40, ok ? `Answered ${s.npc}\u2019s question` : `Heard ${s.npc}\u2019s story`);
+  const all = SITES.filter(x => x.era === s.era);
+  if (!state.eras[s.era.id] && all.every(x => state.done[x.id])){ state.eras[s.era.id] = 1; setTimeout(() => gainXP(150, `Era complete: ${s.era.name}`), 900); }
+  dlgStep = 4; const next = $('#dlgNext'); next.hidden = false; next.textContent = 'Farewell'; next.focus();
+  updateHUD(); save();
+}
+$('#dlgNext').addEventListener('click', () => { dlgStep++; renderDlg(); });
+
+/* ================= panels ================= */
+function openPanel(id){ clearInput(); modal = id; $('#' + id).hidden = false; const x = $('#' + id).querySelector('.x'); if (x) x.focus(); }
+function closePanel(id){ $('#' + id).hidden = true; modal = null; $('#view').focus(); }
+function openJournal(){
+  const n = Object.keys(state.done).length, right = SITES.filter(s => state.done[s.id] && state.done[s.id].c).length;
+  $('#jSub').textContent = n ? `${n} of ${TOTAL} stories heard, ${right} questions answered correctly.` : 'No stories yet. Look for the storytellers marked with a gold sign.';
+  const list = $('#jList'); list.innerHTML = '';
+  ERAS.forEach(e => {
+    const all = SITES.filter(s => s.era === e).sort((a, b) => a.year - b.year);
+    const sec = document.createElement('section'); sec.className = 'era-block';
+    sec.innerHTML = `<h3><i style="background:${e.color}"></i></h3><p class="span"></p><ol></ol>`;
+    sec.querySelector('h3').append(e.name);
+    sec.querySelector('.span').textContent = `${e.span}. ${all.filter(s => state.done[s.id]).length} of ${all.length} heard${state.eras[e.id] ? '. Era complete' : ''}`;
+    const ol = sec.querySelector('ol');
+    all.forEach(s => {
+      const li = document.createElement('li');
+      if (state.done[s.id]){
+        li.innerHTML = '<span class="d"></span><span class="t"></span><span class="r"></span>';
+        li.querySelector('.d').textContent = s.date;
+        li.querySelector('.t').textContent = s.title[0].toUpperCase() + s.title.slice(1);
+        li.querySelector('.r').textContent = `Relic: ${s.relic}. From ${s.npc}, ${s.place}.${state.done[s.id].c ? '' : ' Question missed.'}`;
+      } else { li.className = 'locked'; li.textContent = state.disc[s.id] ? `A storyteller waits at ${s.place}` : 'A story not yet found'; }
+      ol.appendChild(li);
+    });
+    list.appendChild(sec);
+  });
+  openPanel('journal');
+}
+function openMap(){
+  const c = $('#bigmap'), x = c.getContext('2d');
+  x.imageSmoothingEnabled = true;
+  x.drawImage(baseMap, 0, 0, c.width, c.height); x.drawImage(fogMap, 0, 0, c.width, c.height);
+  const k = c.width / MW;
+  x.strokeStyle = 'rgba(233,201,138,.55)'; x.lineWidth = 2; x.setLineDash([6, 5]); x.beginPath();
+  NGW.forEach(([wx, wz], i) => { const [mx, mz] = toMap(wx, wz); i ? x.lineTo(mx * k, mz * k) : x.moveTo(mx * k, mz * k); });
+  x.closePath(); x.stroke(); x.setLineDash([]);
+  x.font = '600 15px "Instrument Sans", system-ui, sans-serif'; x.textAlign = 'center';
+  for (const s of SITES){
+    if (!state.disc[s.id]) continue;
+    const [mx, mz] = toMap(s.nx, s.nz), px = mx * k, pz = mz * k;
+    x.fillStyle = markerColor(s); x.strokeStyle = '#1C2657'; x.lineWidth = 3;
+    x.beginPath(); x.arc(px, pz, 8, 0, 7); x.fill(); x.stroke();
+    const nm = s.place.split(',')[0];
+    x.lineWidth = 4; x.strokeStyle = 'rgba(255,248,232,.9)'; x.strokeText(nm, px, pz + 24); x.fillStyle = '#1C2657'; x.fillText(nm, px, pz + 24);
+  }
+  const [ppx, ppz] = toMap(player.x, player.z);
+  x.save(); x.translate(ppx * k, ppz * k); x.rotate(player.rot);
+  x.fillStyle = '#FFF8E8'; x.strokeStyle = '#1C2657'; x.lineWidth = 3;
+  x.beginPath(); x.moveTo(0, 14); x.lineTo(-10, -9); x.lineTo(0, -4); x.lineTo(10, -9); x.closePath(); x.fill(); x.stroke(); x.restore();
+  $('#mSub').textContent = `${Math.round(egSeen / egTotal * 100)}% of Nigeria explored. Storytellers you have heard can be revisited instantly.`;
+  const tr = $('#travel'); tr.innerHTML = '';
+  const heard = SITES.filter(s => state.done[s.id]).sort((a, b) => a.year - b.year);
+  if (!heard.length){ const p = document.createElement('p'); p.textContent = 'Travel points unlock after you hear a storyteller.'; tr.appendChild(p); }
+  heard.forEach(s => { const b = document.createElement('button'); b.type = 'button'; b.textContent = `Travel to ${s.place.split(',')[0]}`; b.addEventListener('click', () => travel(s)); tr.appendChild(b); });
+  openPanel('mapPanel');
+}
+function travel(s){
+  const a = Math.atan2(s.nx - s.x, s.nz - s.z);
+  player.x = s.nx + Math.sin(a) * 4; player.z = s.nz + Math.cos(a) * 4;
+  if (!inNG(player.x, player.z)){ player.x = s.nx + 3; player.z = s.nz; }
+  player.rot = Math.atan2(s.nx - player.x, s.nz - player.z);
+  cam.yaw = player.rot + Math.PI;
+  closePanel('mapPanel'); snapCamera(); explore(player.x, player.z); save();
+}
+$('#jBtn').addEventListener('click', openJournal);
+$('#jClose').addEventListener('click', () => closePanel('journal'));
+$('#mapBtn').addEventListener('click', openMap);
+$('#mClose').addEventListener('click', () => closePanel('mapPanel'));
+let resetArm = false;
+$('#resetBtn').addEventListener('click', () => {
+  if (!resetArm){ resetArm = true; $('#resetBtn').textContent = 'Press again to erase this journey'; return; }
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  location.reload();
+});
+function showFinale(){
+  const right = SITES.filter(s => state.done[s.id] && state.done[s.id].c).length;
+  $('#finText').textContent = `${state.name}, you have walked from Sokoto to Calabar and heard all ${TOTAL} stories, from the Nok terracottas to the return of democracy in Abuja. You answered ${right} of ${TOTAL} questions correctly and carry ${TOTAL} relics home. Your grandmother can rest easy: the stories have a new keeper.`;
+  openPanel('finale'); $('#finKeep').focus();
+}
+$('#finKeep').addEventListener('click', () => closePanel('finale'));
+$('#finJ').addEventListener('click', () => { $('#finale').hidden = true; modal = null; openJournal(); });
+
+/* ask the way */
+let askUntil = 0, askSite = null;
+const DIRS = ['north','north-east','east','south-east','south','south-west','west','north-west'];
+function askWay(){
+  if (modal) return;
+  let best = null, bd = Infinity;
+  for (const s of SITES){ if (state.done[s.id]) continue; const d = Math.hypot(s.nx - player.x, s.nz - player.z); if (d < bd){ bd = d; best = s; } }
+  if (!best){ toast('You have heard every story. Wander freely.'); return; }
+  askSite = best; askUntil = performance.now() + 9000;
+  const ang = Math.atan2(best.nx - player.x, -(best.nz - player.z));
+  const dir = DIRS[((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8];
+  const km = Math.round(bd / K * 111 / 10) * 10;
+  toast(km < 20 ? 'A storyteller is very close. Look for the light.' : `A villager points <b>${dir}</b>: a storyteller is about ${km} km away. Look for the light.`);
+}
+$('#askBtn').addEventListener('click', askWay);
+
+/* ================= input ================= */
+const keys = {};
+const KM = { KeyW:'f', ArrowUp:'f', KeyS:'b', ArrowDown:'b', KeyA:'l', KeyD:'r', ArrowLeft:'tl', ArrowRight:'tr', ShiftLeft:'run', ShiftRight:'run' };
+function clearInput(){ for (const k in keys) keys[k] = false; stick.x = stick.y = 0; knob.style.transform = ''; }
+let nearNPC = null;
+addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input') { if (e.key === 'Enter' && modal === 'intro') begin(); return; }
+  if (e.key === 'Escape'){
+    if (modal === 'dlg') closeDialogue();
+    else if (modal === 'journal') closePanel('journal');
+    else if (modal === 'mapPanel') closePanel('mapPanel');
+    else if (modal === 'finale') closePanel('finale');
+    return;
+  }
+  if (modal === 'dlg'){
+    if ((e.code === 'Space' || e.code === 'KeyE') && !$('#dlgNext').hidden && document.activeElement.parentElement !== $('#dlgOpts')){ e.preventDefault(); $('#dlgNext').click(); }
+    return;
+  }
+  if (modal) { if (e.code === 'KeyJ' && modal === 'journal') closePanel('journal'); if (e.code === 'KeyM' && modal === 'mapPanel') closePanel('mapPanel'); return; }
+  const k = KM[e.code];
+  if (k){ keys[k] = true; if (e.code.startsWith('Arrow')) e.preventDefault(); }
+  if (e.code === 'KeyE' && nearNPC) openDialogue(nearNPC);
+  if (e.code === 'KeyC') askWay();
+  if (e.code === 'KeyM') openMap();
+  if (e.code === 'KeyJ') openJournal();
+});
+addEventListener('keyup', e => { const k = KM[e.code]; if (k) keys[k] = false; });
+addEventListener('blur', clearInput);
+
+// camera drag
+const cvs = renderer.domElement;
+let drag = null;
+cvs.addEventListener('pointerdown', e => { if (modal) return; drag = { id:e.pointerId, x:e.clientX, y:e.clientY }; cvs.setPointerCapture(e.pointerId); });
+cvs.addEventListener('pointermove', e => {
+  if (!drag || drag.id !== e.pointerId) return;
+  cam.yaw -= (e.clientX - drag.x) * .006; cam.pitch = Math.max(.12, Math.min(1.2, cam.pitch + (e.clientY - drag.y) * .004));
+  drag.x = e.clientX; drag.y = e.clientY;
+});
+const endDrag = e => { if (drag && drag.id === e.pointerId) drag = null; };
+cvs.addEventListener('pointerup', endDrag); cvs.addEventListener('pointercancel', endDrag);
+cvs.addEventListener('wheel', e => { e.preventDefault(); cam.dist = Math.max(8, Math.min(34, cam.dist + e.deltaY * .02)); }, { passive:false });
+
+// joystick
+const stickEl = $('#stick'), knob = $('#knob'), stick = { x:0, y:0, id:null };
+stickEl.addEventListener('pointerdown', e => { stick.id = e.pointerId; stickEl.setPointerCapture(e.pointerId); moveStick(e); });
+stickEl.addEventListener('pointermove', e => { if (stick.id === e.pointerId) moveStick(e); });
+const endStick = e => { if (stick.id === e.pointerId){ stick.id = null; stick.x = stick.y = 0; knob.style.transform = ''; } };
+stickEl.addEventListener('pointerup', endStick); stickEl.addEventListener('pointercancel', endStick);
+function moveStick(e){
+  if (modal) return;
+  const r = stickEl.getBoundingClientRect(), R = r.width / 2;
+  let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R); const d = Math.hypot(dx, dy);
+  if (d > R * .8){ dx *= R * .8 / d; dy *= R * .8 / d; }
+  stick.x = dx / (R * .8); stick.y = dy / (R * .8);
+  knob.style.transform = `translate(${dx}px,${dy}px)`;
+}
+$('#talkBtn').addEventListener('click', () => { if (nearNPC && !modal) openDialogue(nearNPC); });
+
+/* ================= simulation ================= */
+function collide(nx, nz){
+  for (const [cx, cz, r] of colliders){
+    const dx = nx - cx, dz = nz - cz, rr = r + .7;
+    if (Math.abs(dx) > rr || Math.abs(dz) > rr) continue;
+    const d = Math.hypot(dx, dz);
+    if (d < rr && d > 1e-4){ nx = cx + dx / d * rr; nz = cz + dz / d * rr; }
+  }
+  return [nx, nz];
+}
+let saveTimer = 0, lastExplore = { x:1e9, z:1e9 };
+function update(dt, t){
+  // NPC idle + markers + beams
+  for (const s of npcs){
+    const p = s.person;
+    const face = Math.hypot(player.x - s.nx, player.z - s.nz) < 12;
+    const want = face ? Math.atan2(player.x - s.nx, player.z - s.nz) : p.g.rotation.y;
+    let d = want - p.g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); p.g.rotation.y += d * Math.min(1, dt * 4);
+    if (!REDUCED){ p.armR.rotation.x = Math.sin(t * 1.3 + s.phase) * .25 - .2; s.sprite.position.y = p.g.position.y + 4.8 + Math.sin(t * 2 + s.phase) * .18; }
+    s.beam.visible = (askUntil > performance.now() && s === askSite);
+    const pd = Math.hypot(player.x - s.nx, player.z - s.nz);
+    s.sprite.visible = pd < 75 || (state.disc[s.id] && pd < 140);
+  }
+  beamMat.opacity = .22 + (REDUCED ? .1 : Math.sin(t * 4) * .1 + .1);
+  if (!REDUCED) flags.forEach(f => { f.rotation.y = Math.sin(t * 2.2) * .25; });
+
+  let mx = 0, mz = 0, run = !!keys.run;
+  if (!modal){
+    if (keys.tl) cam.yaw += dt * 1.8;
+    if (keys.tr) cam.yaw -= dt * 1.8;
+    let f = (keys.f ? 1 : 0) - (keys.b ? 1 : 0), r = (keys.r ? 1 : 0) - (keys.l ? 1 : 0);
+    if (stick.id !== null){ f = -stick.y; r = stick.x; run = Math.hypot(stick.x, stick.y) > .92; }
+    const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
+    mx = -sy * f + cy * r; mz = -cy * f - sy * r;
+    const m = Math.hypot(mx, mz); if (m > 1){ mx /= m; mz /= m; }
+  }
+  const speed = run ? 26 : 13;
+  const mag = Math.hypot(mx, mz);
+  if (mag > .05){
+    let nx = player.x + mx * speed * dt, nz = player.z + mz * speed * dt;
+    [nx, nz] = collide(nx, nz);
+    if (!inNG(nx, nz)){ if (inNG(nx, player.z)) nz = player.z; else if (inNG(player.x, nz)) nx = player.x; else { nx = player.x; nz = player.z; } }
+    player.x = nx; player.z = nz;
+    const want = Math.atan2(mx, mz);
+    let d = want - player.rot; d = Math.atan2(Math.sin(d), Math.cos(d)); player.rot += d * Math.min(1, dt * 12);
+    player.walk += dt * (run ? 13 : 9) * Math.min(1, mag);
+    if (Math.hypot(player.x - lastExplore.x, player.z - lastExplore.z) > 4){ explore(player.x, player.z); lastExplore = { x:player.x, z:player.z }; }
+  } else player.walk *= .85;
+  const sw = REDUCED ? 0 : Math.sin(player.walk) * .7 * Math.min(1, mag * 1.2);
+  hero.legL.rotation.x = sw; hero.legR.rotation.x = -sw; hero.armL.rotation.x = -sw * .8; hero.armR.rotation.x = sw * .8;
+  const ground = sampleH(player.x, player.z);
+  player.y = Math.max(ground, -.6);
+  hero.g.position.set(player.x, player.y + (REDUCED ? 0 : Math.abs(Math.sin(player.walk)) * .12 * Math.min(1, mag)), player.z);
+  hero.g.rotation.y = player.rot;
+
+  // discovery + interaction
+  nearNPC = null; let nd = 4.8;
+  for (const s of SITES){
+    const d = Math.hypot(s.nx - player.x, s.nz - player.z);
+    if (!state.disc[s.id] && d < 20){ state.disc[s.id] = 1; gainXP(25, `Discovered ${s.place.split(',')[0]}`); save(); }
+    if (d < nd){ nd = d; nearNPC = s; }
+  }
+  const pr = $('#prompt'), tb = $('#talkBtn');
+  if (nearNPC && !modal){
+    pr.hidden = false;
+    pr.innerHTML = TOUCH ? '' : '<kbd>E</kbd> ';
+    pr.append(`${state.done[nearNPC.id] ? 'Talk again with' : 'Talk to'} ${nearNPC.npc}`);
+    tb.disabled = false;
+  } else { pr.hidden = true; tb.disabled = true; }
+
+  saveTimer += dt; if (saveTimer > 4){ saveTimer = 0; if (!modal || modal === 'dlg') save(); }
+}
+function snapCamera(){ updateCamera(1, true); }
+function updateCamera(dt, snap){
+  const tx = player.x, ty = player.y + 2.6, tz = player.z;
+  const cp = Math.cos(cam.pitch);
+  let x = tx + Math.sin(cam.yaw) * cam.dist * cp, z = tz + Math.cos(cam.yaw) * cam.dist * cp, y = ty + Math.sin(cam.pitch) * cam.dist;
+  y = Math.max(y, sampleH(x, z) + 1.5, 1.2);
+  const k = snap ? 1 : Math.min(1, dt * 8);
+  cam.x += (x - cam.x) * k; cam.y += (y - cam.y) * k; cam.z += (z - cam.z) * k;
+  camera.position.set(cam.x, cam.y, cam.z);
+  camera.lookAt(tx, ty, tz);
+  sun.position.set(player.x - 40, 70, player.z + 25); sun.target.position.set(player.x, 0, player.z);
+}
+
+let last = performance.now(), mmTimer = 0;
+function loop(now){
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  update(dt, now / 1000); updateCamera(dt);
+  renderer.render(scene, camera);
+  mmTimer += dt; if (mmTimer > .08){ mmTimer = 0; drawMinimap(); }
+  requestAnimationFrame(loop);
+}
+
+/* ================= boot ================= */
+function begin(){
+  const n = $('#nameIn').value.trim();
+  if (n) state.name = n.slice(0, 24);
+  $('#intro').hidden = true; modal = null;
+  updateHUD(); save(); $('#view').focus();
+  if (!Object.keys(state.disc).length) setTimeout(() => toast('Your first storyteller waits at <b>Lokoja</b>, south-west of here, where the two great rivers meet.'), 600);
+}
+$('#startBtn').addEventListener('click', begin);
+
+function boot(){
+  buildTerrain(); scatter(); buildSites();
+  const resumed = load();
+  if (state.pos){ player.x = state.pos[0]; player.z = state.pos[1]; }
+  cam.yaw = state.yaw;
+  buildMapImages(); sizeMM();
+  explore(player.x, player.z);
+  updateHUD(); snapCamera();
+  SITES.forEach(refreshMarker);
+  const today = new Date();
+  if (today.getMonth() === 9 && today.getDate() === 1){ const h = $('#holiday'); h.hidden = false; h.textContent = `Happy Independence Day. Nigeria is ${today.getFullYear() - 1960} years old today, and the storytellers are in a festive mood.`; }
+  if (resumed){ $('#nameIn').value = state.name === 'Traveller' ? '' : state.name; $('#startBtn').textContent = 'Continue the journey'; }
+  $('#loading').remove();
+  $('#intro').hidden = false; $('#nameIn').focus();
+  requestAnimationFrame(loop);
+}
+let booted = false;
+const go = () => { if (!booted){ booted = true; setTimeout(boot, 30); } };
+if (!window.THREE){ $('#loading').textContent = 'The 3D engine could not load. Check your connection and reload the page.'; return; }
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(go);
+setTimeout(go, 1500);
+})();
+</script>
+</body>
+</html>
